@@ -28,7 +28,7 @@ const colon = () => (prefs.lang === 'en' ? ': ' : '：');
 // ---------------------------------------------------------------- canvas and camera
 // The battlefield is a 3D scene (world3d.js) rendered small and blown up PX times, so it keeps its pixels.
 // The 2D canvas on top only shows the side-on battle scene.
-let VW = 960, VH = 600, PX = 3, mode = 'title', B = null, scene = null;
+let curPx = 0, VW = 960, VH = 600, PX = 3, mode = 'title', B = null, scene = null;
 const gl = $('#gl');
 const fx = document.createElement('canvas'), fxg = fx.getContext('2d'); // shots and explosions over the 3D battle scene
 const PL = { body: 'BODY', armL: 'ARM L', armR: 'ARM R', legs: 'LEGS' };
@@ -38,7 +38,7 @@ function resize() {
   VW = r.width; VH = r.height; cv.width = Math.round(VW * dpr); cv.height = Math.round(VH * dpr); cv.style.width = VW + 'px'; cv.style.height = VH + 'px';
   g.setTransform(dpr, 0, 0, dpr, 0, 0); g.imageSmoothingEnabled = false;
   PX = 2; // every pixel of the scene is 2 x 2 screen pixels: crisp, but fine enough to show the detail
-  W3.resize(VW, VH, PX);
+  W3.resize(VW, VH, PX); curPx = PX;
 }
 const screenToTile = (cx, cy) => W3.pick(cx, cy);
 // a word over a unit on the map, like the "Fire" when it shoots
@@ -49,12 +49,14 @@ function frame() {
   if ((mode === 'battle' || mode === 'scene') && B) {
     const now = performance.now(); B.labels = B.labels.filter((l) => now < l.until);
     if (!scene) W3.render(highlights(), { sel: B.sel, cursor: B.hover, labels: B.labels });
+    // the battle scene is drawn finer than the map, one scene pixel per screen pixel
+    const wantPx = scene ? 1 : PX; if (curPx !== wantPx) { W3.resize(VW, VH, wantPx); curPx = wantPx; }
     if (scene) {
       // the battle scene takes over the 3D view; the effects go on a canvas of the same small size, blown up
       scene.t = (now - scene.t0) / 1000; const A = B3.render(scene); panels();
       const { w, h } = W3.viewSize(); if (fx.width !== w || fx.height !== h) { fx.width = w; fx.height = h; }
       drawBattleFx(fxg, scene, A);
-      g.clearRect(0, 0, VW, VH); g.imageSmoothingEnabled = false; g.drawImage(fx, 0, 0, w * PX, h * PX);
+      g.clearRect(0, 0, VW, VH); g.imageSmoothingEnabled = false; g.drawImage(fx, 0, 0, w * curPx, h * curPx);
       cv.style.pointerEvents = 'auto';
     } else { g.clearRect(0, 0, VW, VH); cv.style.pointerEvents = 'none'; }
   } else { g.fillStyle = '#100e0c'; g.fillRect(0, 0, VW, VH); }
@@ -121,7 +123,7 @@ function base() {
     <div class="tabs"><button class="${baseTab === 'hangar' ? 'on' : ''}" data-tab="hangar">🔧 ${t.hangar}</button><button class="${baseTab === 'shop' ? 'on' : ''}" data-tab="shop">🛒 ${t.shop}</button></div>
     ${body}<button class="big" data-act="sortie" ${over.length ? 'disabled' : ''}>▶ ${t.sortie}${over.length ? `<small>${over.map((x) => L(PILOTS[x.pilot])).join(', ')}${colon()}${t.overweight}</small>` : ''}</button></div>`;
   $('#screen').hidden = false;
-  if (baseTab === 'hangar') Doll.show($('#doll'), S.roster[hsel] || S.roster[0]);
+  if (baseTab === 'hangar') Doll.show($('#doll'), { ...(S.roster[hsel] || S.roster[0]), ri: S.roster[hsel] ? hsel : 0 });
 }
 const PAINT_NAMES = { olive: { zh: '橄欖綠', en: 'Olive' }, desert: { zh: '沙漠', en: 'Desert' }, navy: { zh: '海軍藍', en: 'Navy' }, arctic: { zh: '雪地灰', en: 'Arctic' }, crimson: { zh: '赤紅', en: 'Crimson' }, black: { zh: '暗夜黑', en: 'Night' } };
 function describe(id) {

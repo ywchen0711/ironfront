@@ -77,6 +77,21 @@ function metalTex(dark) {
 }
 const grilleTex = () => { if (texCache.has('grille')) return texCache.get('grille'); const t = pixTex(8, (g, n) => { for (let y = 0; y < n; y++) { g.fillStyle = y % 2 ? '#0e0f12' : '#464a52'; g.fillRect(0, y, n, 1); } }); texCache.set('grille', t); return t; };
 
+// the machine's number on its shoulders, in 3x5 pixel digits
+const DIG = ['111101101101111', '010110010010111', '111001111100111', '111001111001111', '101101111001001', '111100111001111', '111100111101111', '111001001001001', '111101111101111', '111101111001111'];
+function decalTex(u, col) {
+  const num = u.side === 'p' ? String((u.ri ?? 0) + 1).padStart(2, '0') : String(10 + Math.floor(hash(u.x || 0, u.y || 0, 5) * 89));
+  const key = 'decal' + num + col; if (texCache.has(key)) return texCache.get(key);
+  const t = pixTex(16, (g) => {
+    g.clearRect(0, 0, 16, 16); g.fillStyle = '#16161a'; g.fillRect(2, 4, 12, 8); g.fillStyle = col;
+    [...num].forEach((d, k) => { const bits = DIG[+d]; for (let i = 0; i < 15; i++) if (bits[i] === '1') g.fillRect(4 + k * 5 + (i % 3), 5 + Math.floor(i / 3), 1, 1); });
+    g.fillRect(3, 11, 10, 0);
+  });
+  t.wrapS = t.wrapT = THREE.ClampToEdgeWrapping; t.repeat.set(1, 1); t.offset.set(0, 0);
+  // only the plate part of the square: crop the texture to rows 4-12
+  t.repeat.set(1, 0.5); t.offset.set(0, 0.25);
+  texCache.set(key, t); return t;
+}
 // ---------------------------------------------------------------- shapes
 const geoCache = new Map();
 // a tapered block: bottom wb x db, top wt x dt, h tall; the top can lean forward (dz) or sideways (dx)
@@ -97,6 +112,7 @@ export function buildMech(u) {
     glass: new THREE.MeshToonMaterial({ color: '#1e3440', emissive: '#0c2a38', gradientMap: TOON, transparent: true }), grille: T(grilleTex()),
     eye: new THREE.MeshBasicMaterial({ color: '#ff4a30', transparent: true }), ink: new THREE.MeshToonMaterial({ color: '#121210', gradientMap: TOON, transparent: true }),
     dead: new THREE.MeshToonMaterial({ color: '#2e2924', gradientMap: TOON, transparent: true }), jet: new THREE.MeshBasicMaterial({ color: '#6ad0f0', transparent: true }),
+    edge: new THREE.MeshToonMaterial({ color: C.paint[4], gradientMap: TOON, transparent: true }), decal: new THREE.MeshBasicMaterial({ map: decalTex(u, C.trim), transparent: true, alphaTest: 0.5 }),
     lamp: new THREE.MeshBasicMaterial({ color: '#ffd060', transparent: true }), white: new THREE.MeshBasicMaterial({ color: '#ffffff', transparent: true }),
   };
   const group = new THREE.Group(), hit = [], parts = {};
@@ -113,6 +129,8 @@ export function buildMech(u) {
   pr(hips, [0.2, 0.04, 0.28, 0.05, 0.14, 0.04], mats.accent, 0, -0.05, 0.15, 'body'); // front plate, flared out at the foot
   pr(hips, [0.24, 0.04, 0.28, 0.05, 0.12, -0.04], mats.accent, 0, -0.04, -0.14, 'body');
   for (const s of [-1, 1]) pr(hips, [0.05, 0.18, 0.04, 0.2, 0.16, 0, -s * 0.04], mats.paint2, s * 0.22, -0.05, 0, 'body');
+  for (const s of [-1, 1]) { cyl(hips, 0.016, 0.16, mats.metalD, s * 0.1, 0.06, -0.15, 'body', 'y', 6); cyl(hips, 0.022, 0.03, mats.metal, s * 0.1, -0.01, -0.15, 'body', 'y', 6); }
+  blk(hips, 0.28, 0.012, 0.012, mats.edge, 0, 0.02, 0.19, 'body'); blk(hips, 0.06, 0.03, 0.01, mats.trim, 0, -0.07, 0.205, 'body');
   // ---- the chest: a broad wedge, wider at the shoulders, pushed forward at the top
   const torso = pivot(hips, 0, 0.06, 0), shell = pivot(torso, 0, 0, 0); shell.scale.set(BD.kw, BD.kh, 1 + (BD.kw - 1) * 0.5);
   pr(shell, [0.46, 0.4, 0.74, 0.5, 0.4, 0.03], mats.paint, 0, 0.2, 0, 'body');
@@ -125,6 +143,8 @@ export function buildMech(u) {
   blk(shell, 0.18, 0.01, 0.01, mats.lamp, -0.04, 0.355, 0.315, 'body');
   for (const s of [-1, 1]) { blk(shell, 0.02, 0.14, 0.2, mats.grille, s * 0.3, 0.14, -0.02, 'body', [0, 0, s * -0.32]); pr(shell, [0.03, 0.3, 0.03, 0.42, 0.05], mats.trim, s * 0.35, 0.31, 0, 'body', [0, 0, s * -0.32]); }
   rivets(shell, [[-0.2, 0.06, 0.21], [0.2, 0.06, 0.21], [-0.32, 0.38, 0.2], [0.32, 0.38, 0.2]], 'body');
+  blk(shell, 0.74, 0.012, 0.012, mats.edge, 0, 0.4, 0.28, 'body'); for (const s of [-1, 1]) blk(shell, 0.012, 0.012, 0.48, mats.edge, s * 0.37, 0.4, 0.03, 'body');
+  for (const s of [-1, 1]) { blk(shell, 0.09, 0.05, 0.012, mats.grille, s * 0.12, 0.1, 0.235, 'body'); blk(shell, 0.012, 0.012, 0.012, mats.lamp, s * 0.27, 0.36, 0.27, 'body'); }
   // the backpack: a generator, twin thrusters with a blue glow, fins
   pr(shell, [0.36, 0.14, 0.42, 0.16, 0.32, -0.02], mats.metalD, 0, 0.24, -0.31, 'body');
   for (let k = 0; k < 4; k++) blk(shell, 0.34, 0.015, 0.05, mats.metal, 0, 0.13 + k * 0.06, -0.4, 'body');
@@ -183,6 +203,8 @@ export function buildMech(u) {
     pr(sh, [0.32, 0.4, 0.32, 0.4, 0.04], mats.accent, side * 0.06, -0.06, 0, part); // the rim beneath
     blk(sh, 0.02, 0.05, 0.32, mats.trim, side * 0.205, 0.07, 0, part, [0, 0, side * -0.2]);
     rivets(sh, [[side * 0.18, 0.1, 0.15], [side * 0.18, 0.1, -0.15]], part);
+    if (AR.look !== 'round') { put(sh, new THREE.PlaneGeometry(0.13, 0.065), mats.decal, side * 0.213, -0.005, 0.02, part, [0, side * Math.PI / 2, 0]).castShadow = false; blk(sh, 0.24, 0.012, 0.012, mats.edge, side * 0.08, 0.16, 0.17, part); }
+    else put(sh, new THREE.PlaneGeometry(0.13, 0.065), mats.decal, side * 0.252, -0.005, 0.02, part, [0, side * Math.PI / 2, 0]).castShadow = false;
     const up = pivot(sh, 0, -0.06, 0);
     cyl(up, 0.05, 0.16, mats.metal, 0, -0.09, 0, part); cyl(up, 0.014, 0.14, mats.metalD, side * 0.04, -0.09, 0.04, part, 'y', 4);
     const el = pivot(up, 0, -0.18, 0);
@@ -191,6 +213,7 @@ export function buildMech(u) {
     pr(el, [0.03, 0.22, 0.02, 0.05, 0.22, 0.06], mats.paint2, side * 0.1, -0.12, 0, part, [Math.PI, 0, 0]); // a blade fin on the outside
     blk(el, 0.2, 0.015, 0.21, mats.accent, 0, -0.04, 0.005, part);
     blk(el, 0.11, 0.07, 0.11, mats.metal, 0, -0.3, 0, part);
+    blk(el, 0.17, 0.012, 0.012, mats.edge, 0, -0.27, 0.085, part); cyl(el, 0.014, 0.18, mats.metal, -side * 0.08, -0.14, -0.06, part, 'y', 6); cyl(el, 0.022, 0.06, mats.metalD, -side * 0.08, -0.06, -0.06, part, 'y', 6);
     for (let k = -1; k <= 1; k++) blk(el, 0.025, 0.06, 0.03, mats.metalD, k * 0.035, -0.35, 0.04, part);
     // the weapon lies along the forearm: down when the arm hangs, forward when it is raised
     const w = u[slot] && ITEM[u[slot]];
@@ -240,7 +263,7 @@ export function buildMech(u) {
       cyl(hip, 0.06, 0.1, mats.metalD, 0, 0, 0, 'legs', 'x');
       cyl(hip, 0.055, 0.22, mats.metal, 0, -0.12, 0, 'legs');
       pr(hip, [0.08, 0.14, 0.06, 0.18, 0.22, 0, side * 0.02], mats.paint2, side * 0.06, -0.1, 0.01, 'legs'); // thigh armour
-      cyl(hip, 0.013, 0.2, mats.metalD, 0, -0.11, 0.07, 'legs', 'y', 4);
+      cyl(hip, 0.013, 0.2, mats.metalD, 0, -0.11, 0.07, 'legs', 'y', 4); cyl(hip, 0.02, 0.1, mats.metal, 0, -0.06, -0.07, 'legs', 'y', 6); cyl(hip, 0.012, 0.12, mats.metalD, 0, -0.16, -0.07, 'legs', 'y', 6);
       const knee = pivot(hip, 0, -0.24, 0);
       cyl(knee, 0.06, 0.18, mats.metalD, 0, 0, 0, 'legs', 'x');
       pr(knee, [0.19, 0.22, 0.25, 0.28, 0.33], mats.paint, 0, -0.16, 0.01, 'legs', [Math.PI, 0, 0]); // the greave, broad at the top
@@ -250,6 +273,8 @@ export function buildMech(u) {
       rivets(knee, [[0.09, -0.08, 0.14], [-0.09, -0.08, 0.14]], 'legs');
       if (LG.look === 'heavy') { pr(knee, [0.05, 0.22, 0.06, 0.26, 0.26], mats.accent, side * 0.15, -0.16, 0.01, 'legs'); blk(knee, 0.3, 0.04, 0.32, mats.paint2, 0, -0.29, 0.01, 'legs'); }
       if (LG.look === 'fin') { pr(knee, [0.03, 0.18, 0.015, 0.04, 0.26, -0.14], mats.paint2, 0, -0.08, -0.16, 'legs', [0.6, 0, 0]); blk(knee, 0.015, 0.2, 0.015, mats.trim, 0, -0.14, 0.17, 'legs'); }
+      cyl(knee, 0.026, 0.14, mats.metalD, 0, -0.1, -0.16, 'legs', 'y', 6); cyl(knee, 0.014, 0.12, mats.metal, 0, -0.22, -0.15, 'legs', 'y', 6);
+      pr(knee, [0.16, 0.04, 0.12, 0.03, 0.08, 0.02], mats.accent, 0, -0.29, 0.13, 'legs', [0.25, 0, 0]); blk(knee, 0.2, 0.012, 0.012, mats.edge, 0, -0.03, 0.16, 'legs');
       const ank = pivot(knee, 0, -0.32, 0);
       cyl(ank, 0.045, 0.16, mats.metalD, 0, 0, 0, 'legs', 'x');
       pr(ank, [0.26, 0.3, 0.22, 0.26, 0.08], mats.metalD, 0, -0.04, 0.02, 'legs'); // the sole

@@ -36,7 +36,7 @@ function init() {
   far.position.set(0, 1.2, -22); scn.add(far);
   scn.add(new THREE.HemisphereLight('#c8ccd4', '#3a342a', 1.25));
   sun = new THREE.DirectionalLight('#ffe8c8', 2.6); sun.position.set(-2.2, 4.2, 3.4); sun.castShadow = true;
-  sun.shadow.mapSize.set(1024, 1024); sun.shadow.bias = -0.0015;
+  sun.shadow.mapSize.set(2048, 2048); sun.shadow.bias = -0.0008; sun.shadow.normalBias = 0.012;
   Object.assign(sun.shadow.camera, { left: -3, right: 3, top: 3, bottom: -3, near: 0.5, far: 12 }); sun.shadow.camera.updateProjectionMatrix();
   scn.add(sun);
   cmr = new THREE.PerspectiveCamera(28, 16 / 9, 0.1, 80);
