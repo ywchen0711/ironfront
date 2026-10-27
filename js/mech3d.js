@@ -352,6 +352,8 @@ export function poseMech(m, u, pose) {
   if (pose.swing != null) { const A = pose.swingL ? m.armL : m.armR; A.up.rotation.x = pose.swing; A.el.rotation.x = -0.3; } // a melee blow, with whichever arm holds the weapon
   if (pose.armR) { m.armR.up.rotation.x = pose.armR.s; m.armR.el.rotation.x = pose.armR.e; }
   if (pose.armL) { m.armL.up.rotation.x = pose.armL.s; m.armL.el.rotation.x = pose.armL.e; }
+  // the wrists turn a melee weapon along the blow
+  for (const k of ['wL', 'wR']) { const hd = m.parts['hand' + k]; if (hd) hd.rotation.x = pose['wrist' + k[1]] || 0; }
   // an arm that is hit is thrown back and out
   for (const [A, k, side] of [[m.armR, pose.kickR || 0, 1], [m.armL, pose.kickL || 0, -1]]) { A.up.rotation.x += k; A.sh.rotation.z = side * k * 0.35; }
   // the muzzle flash; the mono-eye sweeps from side to side

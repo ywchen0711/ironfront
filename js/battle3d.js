@@ -68,6 +68,7 @@ const imp = (dt, rise, decay) => (dt < 0 ? 0 : dt < rise ? dt / rise : Math.exp(
 // Every fight is choreographed a little differently: a camera, an entrance, each side's way of standing, and for each
 // volley a way of shooting; for each blow a way of swinging; for each hit or miss a way of reacting. All of it comes
 // from one random seed per fight, so a frame always looks the same for the same moment.
+const STYLES = ['over', 'side', 'thrust', 'upper', 'spin', 'leap', 'double'];
 function choreograph(sc) {
   if (sc.seed == null) sc.seed = Math.floor(Math.random() * 1e5);
   const R = (a, b = 0) => hash(sc.seed + a * 7, b * 13 + 3, 29);
@@ -79,7 +80,7 @@ function choreograph(sc) {
     if (!v || v.from !== e.from) { v = { from: e.from, cat: e.cat, t0: e.at, t1: e.at, n: plan.volleys.length }; plan.volleys.push(v); const r = R(10, v.n);
       v.mode = e.cat === 'short' ? ['stand', 'crouch', 'advance', 'strafe', 'brace'][Math.floor(r * 5)] : e.cat === 'long' ? ['stand', 'brace', 'back'][Math.floor(r * 3)] : 'melee';
       v.dir = R(11, v.n) > 0.5 ? 1 : -1; }
-    v.t1 = e.at; e.style = ['over', 'side', 'thrust'][Math.floor(R(12, e.n) * 3)];
+    v.t1 = e.at; e.style = STYLES[Math.floor(R(12, e.n) * STYLES.length)]; e.approach = ['run', 'dash', 'leap'][Math.floor(R(13, e.n) * 3)];
   }
   sc.plan = plan;
 }
@@ -95,16 +96,16 @@ export function render(sc) {
   for (const s of ['L', 'R']) {
     const m = sideMech[s], u = sc[s], f = s === 'L' ? 1 : -1, P = plan.side[s], theirs = sc.events.filter((e) => e.from !== s);
     let x = -f * GAP, z = f * 0.22, walk = 0, phase = t * 16, crouch = P.crouch, lean = 0, roll = 0, twist = P.twist, kickR = 0, kickL = 0, headKick = 0;
-    let aim = 0, guard = 0, armR = null, armL = null, swing = null, push = 0, muzzle = false, recoil = 0;
+    let wristL = 0, wristR = 0, aim = 0, guard = 0, armR = null, armL = null, swing = null, push = 0, muzzle = false, recoil = 0, meleeC = 0;
     // the entrance: walking in, sliding in on the jets, or already standing ready
     const enter = clamp01(t / 0.5), left = 1 - enter;
     if (plan.enter === 'walk') { x -= f * 0.7 * left * left; if (enter < 1) { walk = 1; phase = t * 13; } }
     else if (plan.enter === 'dash') { x -= f * 1.6 * left ** 3; lean += 0.3 * left; crouch += 0.4 * left; }
     else guard = Math.max(guard, 0.6 * left);
     // my volley, if one is under way
-    const V = plan.volleys.find((v) => v.from === s && t > v.t0 - 0.5 && t < v.t1 + 0.4);
+    const V = plan.volleys.find((v) => v.from === s && t > v.t0 - 0.75 && t < v.t1 + 0.4);
     if (V) {
-      const q = clamp01((t - (V.t0 - 0.5)) / (V.t1 - V.t0 + 0.9)), env = Math.sin(q * Math.PI);
+      const q = clamp01((t - (V.t0 - 0.75)) / (V.t1 - V.t0 + 1.15)), env = Math.sin(q * Math.PI);
       if (V.cat === 'short') {
         aim = 1;
         if (V.mode === 'crouch') crouch += 0.75 * env;
@@ -120,21 +121,35 @@ export function render(sc) {
     for (const e of sc.events) {
       if (e.from !== s) continue;
       const dt = t - e.at;
-      // each shot: a flash, the gun kicks up a little differently every time, the body rocks
+      // each shot: a flash and the gun kicks up
       if (e.cat === 'short' && dt > -0.16 && dt < -0.08) { muzzle = true; recoil = 1; }
-      if (e.cat === 'short' && dt > -0.16 && dt < 0.05) { roll -= 0.025 * f; lean -= 0.02; }
       if (e.cat === 'long') { const k = imp(dt + 0.55, 0.05, 5); lean -= 0.16 * k; push -= 0.05 * k; }
-      // a blow: charge across and strike, overhead, sideways or straight ahead
-      if (e.cat === 'melee' && dt > -0.35 && dt < 0.3) {
-        const k = 1 - Math.abs(dt) / 0.35; x += f * (2 * GAP - 1.0) * Math.min(1, k * 1.6); walk = 1; phase = t * 16;
-        const q = clamp01((dt + 0.3) / 0.4);
-        const arm = ITEM[u.wR]?.cat !== 'melee' && ITEM[u.wL]?.cat === 'melee' ? 'L' : 'R', set = (v) => { if (arm === 'L') armL = v; else armR = v; };
-        if (e.style === 'side') { twist = q < 0.7 ? 0.9 * (q / 0.7) : 0.9 - 1.7 * ((q - 0.7) / 0.3); set({ s: -1.45, e: -0.25 }); }
-        else if (e.style === 'thrust') { set(q < 0.7 ? { s: -0.4 + 0.2 * (q / 0.7), e: -1.8 } : { s: -0.2 - 1.4 * ((q - 0.7) / 0.3), e: -1.8 + 1.8 * ((q - 0.7) / 0.3) }); lean += q > 0.7 ? 0.3 : 0; }
-        else { swing = q < 0.7 ? -0.4 - 2.2 * (q / 0.7) : -2.6 + 1.9 * ((q - 0.7) / 0.3); set(null); }
-        lean += 0.1;
+      // a blow, in five beats: close in, wind up and hold, strike, hold the follow-through, step back
+      if (e.cat === 'melee' && dt > -0.9 && dt < 0.75) {
+        const reach = 2 * GAP - 1.0, sm = (v) => v * v * (3 - 2 * v);
+        const inK = sm(clamp01((dt + 0.9) / 0.55)), outK = sm(clamp01((dt - 0.3) / 0.45)), c = inK * (1 - outK);
+        const was = meleeC; meleeC = Math.max(meleeC, c); if (c > 0.02 && c < 0.98 && c >= was) { walk = 1; phase = t * (dt > 0.3 ? -14 : 16); }
+        if (e.approach === 'dash' && dt < -0.35) { walk = 0; lean += 0.3; crouch += 0.4; }
+        const wu = clamp01((dt + 0.32) / 0.24), st = clamp01((dt + 0.07) / 0.09), hold = dt > 0.02 && dt < 0.3;
+        const arm = ITEM[u.wR]?.cat !== 'melee' && ITEM[u.wL]?.cat === 'melee' ? 'L' : 'R', set = (v) => { if (arm === 'L') armL = v; else armR = v; }, wrist = (v) => { if (arm === 'L') wristL = v; else wristR = v; };
+        const mix = (a, b, k) => ({ s: a.s + (b.s - a.s) * k, e: a.e + (b.e - a.e) * k });
+        const rest = { s: -0.5, e: -0.9 };
+        const pose2 = (back, hit) => set(st > 0 ? mix(back, hit, st) : mix(rest, back, wu));
+        if (dt > -0.35) {
+          if (e.style === 'side') { twist = st > 0 ? 1.0 - 1.9 * st : 0.3 + 0.7 * wu; pose2({ s: -1.45, e: -0.25 }, { s: -1.45, e: -0.15 }); wrist(1.2 * wu); }
+          else if (e.style === 'thrust') { twist = st > 0 ? 0.45 - 0.7 * st : 0.3 + 0.15 * wu; pose2({ s: -0.15, e: -1.9 }, { s: -1.6, e: 0 }); lean += 0.3 * st; wrist(1.5 * Math.max(wu, st)); }
+          else if (e.style === 'upper') { crouch += 0.8 * wu * (1 - st); lean -= 0.18 * st; pose2({ s: 0.25, e: -0.5 }, { s: -2.5, e: -0.5 }); }
+          else if (e.style === 'spin') { pose2({ s: -1.4, e: -0.3 }, { s: -1.5, e: -0.2 }); twist = 0.6 * wu * (1 - st); m.spin = st * Math.PI * 2 * -f; }
+          else if (e.style === 'leap') { pose2({ s: -2.8, e: -0.3 }, { s: -0.5, e: -0.2 }); crouch += 0.6 * st; }
+          else if (e.style === 'double') { const st2 = clamp01((dt + 0.2) / 0.08); set(st2 > 0 ? mix({ s: -2.6, e: -0.3 }, { s: -0.5, e: -0.2 }, st2) : st > 0 ? mix({ s: -1.4, e: -0.2 }, { s: -2.6, e: -0.3 }, st) : mix(rest, { s: -1.4, e: -0.2 }, wu)); twist = st > 0 ? 0.6 * (1 - st) : 0.6 * wu; }
+          else { pose2({ s: -2.7, e: -0.3 }, { s: -0.6, e: -0.2 }); lean += 0.22 * st; }
+          if (hold) lean += 0.08;
+        }
+        // a leap: up into the air while closing in, down with the blow
+        if (e.style === 'leap' || e.approach === 'leap') { const k = clamp01((dt + 0.75) / 0.7); m.jump = Math.max(m.jump || 0, Math.sin(k * Math.PI) * 0.55 * (dt < -0.05 ? 1 : 0)); }
       }
     }
+    x += f * (2 * GAP - 1.0) * meleeC;
     // braced for what is coming: the guard goes up just before the other side fires
     if (!V && theirs.some((e) => t > e.at - 0.6 && t < e.at + 0.2)) guard = 1;
     // reactions to every shot aimed at me
@@ -142,14 +157,14 @@ export function render(sc) {
       const dt = t - e.at;
       if (!e.miss) {
         if (dt < 0 || dt > 1.5) continue;
-        const heavy = e.cat !== 'short', amp = (heavy ? 1 : 0.3) * (e.broke ? 1.5 : 1), I = imp(dt, 0.05, heavy ? 3.2 : 7), r = R(31, e.n) - 0.5;
+        const heavy = e.cat !== 'short', amp = (heavy ? 1 : 0.22) * (e.broke ? 1.5 : 1), I = imp(dt, heavy ? 0.06 : 0.12, heavy ? 3.2 : 2.6), r = R(31, e.n) - 0.5;
         if (e.part === 'body') { lean -= amp * 0.34 * I; headKick += amp * 0.9 * I; roll += r * amp * 0.3 * I; }
         else if (e.part === 'armR') { kickR += amp * 1.1 * I; twist += amp * 0.4 * I; roll += 0.08 * amp * I; }
         else if (e.part === 'armL') { kickL += amp * 1.1 * I; twist -= amp * 0.4 * I; roll -= 0.08 * amp * I; }
         else { crouch += amp * 0.8 * I; roll += r * amp * 0.35 * I; lean += amp * 0.12 * I; }
         push += amp * (heavy ? 0.32 : 0.05) * I;
         // a heavy blow sends it staggering back a step or two
-        if (heavy && dt > 0.04 && dt < 0.6) { walk = Math.max(walk, 0.45); phase = dt * 20; }
+        if (heavy && dt > 0.06 && dt < 0.6) { walk = Math.max(walk, 0.45); phase = dt * 9; }
       } else if (dt > -0.15 && dt < 0.5) {
         // a miss: it sidesteps or ducks
         const b = Math.sin(clamp01((dt + 0.15) / 0.65) * Math.PI), dir = R(34, e.n) > 0.5 ? 1 : -1;
@@ -159,14 +174,13 @@ export function render(sc) {
     }
     const dying = sc.dead?.[s] && t > sc.deadAt ? Math.min(1, (t - sc.deadAt) / 0.9) : 0;
     const hits = theirs.filter((e) => !e.miss && t >= e.at && t < e.at + 0.25);
-    const jolt = hits.length ? Math.sin(t * 70) * 0.015 : 0;
-    m.holder.position.set(x - f * (jolt + push), -dying * 0.25, z);
-    m.holder.rotation.y = f * (Math.PI / 2 - 0.32);
+    m.holder.position.set(x - f * push, -dying * 0.25 + (m.jump || 0), z);
+    m.holder.rotation.y = f * (Math.PI / 2 - 0.32) + (m.spin || 0); m.jump = 0; m.spin = 0;
     m.group.rotation.x = -dying * dying * 1.1; // a destroyed machine topples backwards
     const sway = Math.sin(t * 1.25 * P.sw + P.ph);
     poseMech(m, { ...u, hp: sc['hp' + s] }, {
-      t, walk, phase, aim, muzzle, recoil, flinch: hits.length ? Math.sin(t * 60) : 0, swing, swingL: ITEM[u.wR]?.cat !== 'melee' && ITEM[u.wL]?.cat === 'melee',
-      stance: dying ? 0 : 1, sway: walk >= 0.5 ? 0 : sway, twist, look: 0, lean: lean + dying * 0.2, guard, crouch: Math.min(1, crouch), roll, kickR, kickL, headKick, armR, armL,
+      t, walk, phase, aim, muzzle, recoil, flinch: 0, swing, swingL: ITEM[u.wR]?.cat !== 'melee' && ITEM[u.wL]?.cat === 'melee',
+      stance: dying ? 0 : 1, sway: walk >= 0.5 ? 0 : sway, twist, look: 0, lean: lean + dying * 0.2, guard, crouch: Math.min(1, crouch), roll, kickR, kickL, headKick, armR, armL, wristL, wristR,
     });
     // the part that is hit flashes white
     const lit = {}; for (const e of hits) lit[e.part] = Math.floor((t - e.at) * 30) % 2 === 0;

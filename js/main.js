@@ -236,8 +236,9 @@ async function attack(a, w, d) {
 function battleScene(r, hpA, hpD) {
   if (!prefs.anim) return Promise.resolve();
   const left = r.att.side === 'p' ? 'att' : 'def', Ls = left === 'att' ? 'L' : 'R', Rs = left === 'att' ? 'R' : 'L';
-  const ev = []; let t = 0.5, n = 0;
-  const add = (vol, from, w) => { for (const h of vol.hits) { ev.push({ at: t, from, cat: w.w.cat, ...h, n: n++ }); t += w.w.cat === 'long' ? 0.6 : w.w.cat === 'melee' ? 0.5 : 0.13; } t += 0.5; };
+  // each volley starts with a pause to aim, or to close in and wind up, so the attack can be seen
+  const ev = []; let t = 0.4, n = 0;
+  const add = (vol, from, w) => { t += w.w.cat === 'melee' ? 0.9 : w.w.cat === 'long' ? 0.75 : 0.7; for (const h of vol.hits) { ev.push({ at: t, from, cat: w.w.cat, ...h, n: n++ }); t += w.w.cat === 'long' ? 0.8 : w.w.cat === 'melee' ? 1.0 : 0.13; } t += 0.35; };
   add(r.first, Ls, r.w);
   if (r.second) add(r.second, Rs, r.cw);
   const sc = { L: left === 'att' ? r.att : r.def, R: left === 'att' ? r.def : r.att, events: ev, t: 0, t0: performance.now(), ground: B.map[r.def.y][r.def.x] };
