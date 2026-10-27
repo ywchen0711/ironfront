@@ -296,7 +296,7 @@ export function drawBattleFx(g, sc, A) {
     const b = A[e.from === 'L' ? 'R' : 'L'], p = e.miss ? b.miss : b[e.part];
     if (!e.miss && dt < 0.3) boom(g, p.x + (e.n % 3 - 1) * z(4), p.y + (e.n % 2) * z(4), z(e.cat === 'long' ? 16 : e.cat === 'melee' ? 11 : 7), dt / 0.3);
     if (!e.miss && dt < 0.4) sparks(g, p.x, p.y, z(1), dt / 0.4, e.n);
-    const tx = b.head.x + ((e.n % 5) - 2) * z(18), ty = b.head.y + z(4) - (e.n % 2) * z(10) - Math.round(dt * 24 * k), s = e.miss ? 'MISS' : `${e.dmg}`;
+    const tx = b.head.x + ((e.n % 3) - 1) * z(10), ty = b.head.y + z(4) - (e.n % 3) * z(9) - Math.round(dt * 24 * k), s = e.miss ? 'MISS' : `${e.dmg}`;
     const o = Math.max(1, Math.round(fs / 8)); g.fillStyle = '#100e0a'; for (const [dx, dy] of [[-o, 0], [o, 0], [0, -o], [0, o]]) g.fillText(s, tx + dx, ty + dy);
     g.fillStyle = e.miss ? '#c8d0d8' : e.broke ? '#ff7040' : '#ffe070'; g.fillText(s, tx, ty);
   }

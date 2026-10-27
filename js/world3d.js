@@ -52,7 +52,7 @@ function tex(w, h, paint) {
 }
 const texCache = new Map();
 const cached = (key, make) => { if (!texCache.has(key)) texCache.set(key, make()); return texCache.get(key); };
-function fillNoise(g, w, h, pal, seed, f) { for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) { g.fillStyle = (f && f(x, y)) || pickPal(pal, hash(x + seed * 31, y + seed * 17, seed)); g.fillRect(x, y, 1, 1); } }
+function fillNoise(g, w, h, pal, seed, f) { for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) { const v = hash((x >> 1) + seed * 31, (y >> 1) + seed * 17, seed); g.fillStyle = (f && f(x, y)) || (v > 0.9 ? pal[1] : v > 0.84 ? pal[2] : pal[0]); g.fillRect(x, y, 1, 1); } }
 function topTex(ch, v, along) {
   return cached(`t${ch}${v}${along}`, () => tex(16, 16, (g) => {
     if (ch === '.') fillNoise(g, 16, 16, P.grass, v);

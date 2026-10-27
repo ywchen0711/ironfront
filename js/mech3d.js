@@ -52,26 +52,27 @@ function armourTex(pal, seed) {
   const t = pixTex(32, (g, n) => {
     const px = (x, y, c) => { g.fillStyle = c; g.fillRect(x, y, 1, 1); };
     // the paint, nearly flat, darkening with grime towards the bottom of the plate (dithered)
-    for (let y = 0; y < n; y++) for (let x = 0; x < n; x++) { const v = hash(x, y, seed), low = (y - n * 0.72) / (n * 0.28); px(x, y, low > 0 && (x + y) % 2 === 0 && v < low * 0.7 ? pal[1] : v > 0.985 ? pal[3] : pal[2]); }
+    g.fillStyle = pal[2]; g.fillRect(0, 0, n, n);
+    g.fillStyle = pal[1]; g.fillRect(1, n - 3, n - 2, 1); // a soft shade along the foot of the plate
     // panel seams round the edge, a lit rim on top
     for (let k = 0; k < n; k++) { px(k, 0, pal[4]); px(0, k, pal[3]); px(k, n - 1, pal[0]); px(n - 1, k, pal[1]); }
     // chips: paint worn back to bare metal along the edges
-    for (let k = 0; k < 18; k++) {
+    for (let k = 0; k < 5; k++) {
       const e = Math.floor(hash(k, seed, 21) * 4), p = 2 + Math.floor(hash(seed, k, 22) * (n - 4)), len = 1 + Math.floor(hash(k, k, seed) * 3);
       for (let j = 0; j < len; j++) { const [x, y] = e === 0 ? [p + j, 1] : e === 1 ? [p + j, n - 2] : e === 2 ? [1, p + j] : [n - 2, p + j]; px(x, y, '#5e626a'); if (e === 0 || e === 2) px(x + (e === 2 ? 1 : 0), y + (e === 0 ? 1 : 0), '#8a8e96'); }
     }
     // scratches
-    for (let k = 0; k < 4; k++) { let x = 4 + Math.floor(hash(k, seed, 31) * 22), y = 4 + Math.floor(hash(seed, k, 32) * 18); const dx = hash(k, 3, seed) > 0.5 ? 1 : -1; for (let j = 0; j < 3 + (k % 3); j++) { px(x, y, j % 2 ? pal[4] : '#7a7e86'); x += dx; if (j % 2) y++; } }
+    for (let k = 0; k < (seed === 1 ? 1 : 0); k++) { let x = 4 + Math.floor(hash(k, seed, 31) * 22), y = 4 + Math.floor(hash(seed, k, 32) * 18); const dx = hash(k, 3, seed) > 0.5 ? 1 : -1; for (let j = 0; j < 3 + (k % 3); j++) { px(x, y, j % 2 ? pal[4] : '#7a7e86'); x += dx; if (j % 2) y++; } }
     // rivets, with rust running down from two of them
     for (const [x, y] of [[3, 3], [n - 4, 3], [3, n - 4], [n - 4, n - 4]]) { px(x, y, pal[0]); px(x - 1, y - 1, pal[4]); }
-    for (const [x, y0] of [[3, 4], [n - 4, 4]]) if (hash(x, seed, 41) > 0.35) for (let y = y0; y < y0 + 4 + Math.floor(hash(seed, x, 42) * 6); y++) px(x + (y % 3 === 0 ? 1 : 0), y, y % 2 ? '#5a3c22' : '#6e4a2a');
+    for (const [x, y0] of [[3, 4], [n - 4, 4]]) if (x === 3 && hash(x, seed, 41) > 0.5) for (let y = y0; y < y0 + 3; y++) px(x, y, '#5e4630');
   });
   texCache.set(key, t); return t;
 }
 function metalTex(dark) {
   const key = 'metal' + dark; if (texCache.has(key)) return texCache.get(key);
   const pal = dark ? ['#121317', '#1c1e23', '#272a30', '#353940', '#4c5058'] : ['#1c1e23', '#2a2d34', '#3a3e46', '#4e535c', '#727780'];
-  const t = pixTex(16, (g, n) => { for (let y = 0; y < n; y++) for (let x = 0; x < n; x++) { const v = hash(x, y, dark ? 41 : 40); g.fillStyle = v > 0.95 ? pal[3] : y > n - 4 && v < 0.5 ? pal[1] : pal[2]; g.fillRect(x, y, 1, 1); } g.fillStyle = pal[0]; g.fillRect(0, n - 1, n, 1); g.fillRect(n - 1, 0, 1, n); g.fillStyle = pal[4]; g.fillRect(0, 0, n, 1); for (let y = 4; y < n - 2; y += 4) { g.fillStyle = pal[1]; g.fillRect(2, y, n - 4, 1); } g.fillStyle = '#5a3c22'; g.fillRect(5, n - 3, 2, 1); });
+  const t = pixTex(16, (g, n) => { for (let y = 0; y < n; y++) for (let x = 0; x < n; x++) { const v = hash(x, y, dark ? 41 : 40); g.fillStyle = pal[2]; void v; g.fillRect(x, y, 1, 1); } g.fillStyle = pal[0]; g.fillRect(0, n - 1, n, 1); g.fillRect(n - 1, 0, 1, n); g.fillStyle = pal[4]; g.fillRect(0, 0, n, 1); for (let y = 4; y < n - 2; y += 4) { g.fillStyle = pal[1]; g.fillRect(2, y, n - 4, 1); } });
   texCache.set(key, t); return t;
 }
 const grilleTex = () => { if (texCache.has('grille')) return texCache.get('grille'); const t = pixTex(8, (g, n) => { for (let y = 0; y < n; y++) { g.fillStyle = y % 2 ? '#0e0f12' : '#464a52'; g.fillRect(0, y, n, 1); } }); texCache.set('grille', t); return t; };

@@ -21,7 +21,7 @@ function pixTex(w, h, paint) {
 function groundTex(ch) {
   const pal = ch === 'c' ? P.snow : ch === 'r' ? P.asph : ch === ',' || ch === 'x' ? P.conc : ch === 'f' ? P.forest : ch === 'h' || ch === 'H' ? P.dirt : P.grass;
   return pixTex(32, 32, (g, w, h) => {
-    for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) { const v = hash(x >> 2, y >> 2, 7), d = hash(x, y, 8); g.fillStyle = v > 0.8 && d > 0.3 ? pal[1] : d > 0.985 ? pal[2] : pal[0]; g.fillRect(x, y, 1, 1); }
+    g.fillStyle = pal[0]; g.fillRect(0, 0, w, h); void hash;
   });
 }
 function init() {
@@ -31,7 +31,7 @@ function init() {
   scn.background = pixTex(1, 96, (g, w, h) => { for (let y = 0; y < h; y++) { const k = y / h * sky.length, i = Math.floor(k), f = k - i; g.fillStyle = sky[Math.min(sky.length - 1, i + (f > 0.8 && y % 2 ? 1 : 0))]; g.fillRect(0, y, 1, 1); } });
   scn.fog = new THREE.Fog('#565246', 9, 26);
   // a faint line of hills far behind, barely darker than the haze
-  const hills = pixTex(128, 16, (g, w, h) => { for (let x = 0; x < w; x++) { const top = 6 + Math.round(Math.sin(x * 0.09) * 3 + Math.sin(x * 0.23 + 1) * 2 + hash(x >> 3, 1, 3) * 2); g.fillStyle = '#3e3c3a'; g.fillRect(x, top, 1, h - top); } });
+  const hills = pixTex(128, 16, (g, w, h) => { for (let x = 0; x < w; x++) { const top = 8 + Math.round(Math.sin(x * 0.07) * 3 + Math.sin(x * 0.17 + 1) * 1.5); g.fillStyle = '#3e3c3a'; g.fillRect(x, top, 1, h - top); } });
   const far = new THREE.Mesh(new THREE.PlaneGeometry(60, 7.5), new THREE.MeshBasicMaterial({ map: hills, transparent: true, fog: false, depthWrite: false }));
   far.position.set(0, 1.2, -22); scn.add(far);
   scn.add(new THREE.HemisphereLight('#c8ccd4', '#3a342a', 1.25));
