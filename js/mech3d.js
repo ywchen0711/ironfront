@@ -328,15 +328,15 @@ export function poseMech(m, u, pose) {
     if (st > 0) {
       // standing to fight: the left foot forward, the right one back, both knees bent to the same lowered hip height,
       // each shin solved so its foot stays flat on the ground
-      a.th += 0.3 * st + sway * 0.04; b.th -= 0.24 * st - sway * 0.04;
-      hipY = Math.min(Math.cos(a.th) * 0.24, Math.cos(b.th) * 0.24) + 0.32 * Math.cos(0.5 * st) + 0.08 + 0.02 + breathe * 2 - Math.min(1, pose.crouch || 0) * 0.13;
+      a.th += 0.17 * st + sway * 0.03; b.th -= 0.13 * st - sway * 0.03;
+      hipY = Math.min(Math.cos(a.th) * 0.24, Math.cos(b.th) * 0.24) + 0.32 * Math.cos(0.2 * st) + 0.08 + 0.02 + breathe * 2 - Math.min(1, pose.crouch || 0) * 0.13;
       for (const l of [a, b]) l.bend = l.th + Math.acos(Math.max(-1, Math.min(1, (hipY - 0.02 - 0.08 - Math.cos(l.th) * 0.24) / 0.32)));
     }
     for (const [L, l] of [[m.legL, a], [m.legR, b]]) { L.hip.position.y = hipY; L.hip.rotation.x = -l.th; L.knee.rotation.x = l.bend; L.ank.rotation.x = l.th - l.bend; }
     m.hips.position.y = hipY;
   } else if (m.legsType.hover) m.hips.position.y = 0.44 + Math.sin(t * 4) * 0.015;
   m.hips.position.x = sway * 0.025 * st; m.hips.rotation.z = -sway * 0.03 * st;
-  m.torso.rotation.x = w * 0.08 + aim * 0.04 + st * 0.06 + (pose.lean || 0) - (pose.recoil || 0) * 0.03;
+  m.torso.rotation.x = w * 0.08 * (1 - st) + (pose.lean || 0) - (pose.recoil || 0) * 0.03;
   m.torso.rotation.y = pose.twist || 0; m.torso.rotation.z = sway * 0.05 * st + (pose.roll || 0);
   m.torso.position.x = (pose.flinch || 0) * 0.03;
   m.head.rotation.y = (pose.look || 0) + Math.sin(t * 0.7) * 0.12 * st * (1 - aim);

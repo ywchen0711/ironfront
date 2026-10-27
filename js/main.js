@@ -225,7 +225,6 @@ async function attack(a, w, d) {
   A.aimUntil = now + 900; A.fireFrom = now + 380; label(a, 'Fire', 650); sfx('click'); await wait(600);
   const r = fight(a, w, d, B.map);
   await battleScene(r, hpA, hpD);
-  for (const [u, v] of [[d, r.first], [a, r.second]]) if (v && v.hits.some((h) => !h.miss)) (u.anim || (u.anim = { phase: 0, walk: 0 })).hitUntil = performance.now() + 450;
   if (!prefs.anim) { const sum = (v) => v.hits.reduce((s2, h) => s2 + (h.dmg || 0), 0); label(d, sum(r.first) ? `-${sum(r.first)}` : 'Miss', 900, sum(r.first) ? '#a02010' : '#141410'); if (r.second) { await wait(450); label(a, sum(r.second) ? `-${sum(r.second)}` : 'Miss', 900, sum(r.second) ? '#a02010' : '#141410'); } await wait(700); }
   for (const u of [a, d]) if (!alive(u)) { u.dying = 0.01; sfx('boom'); const t0 = performance.now(); await new Promise((res) => { const tick = () => { u.dying = (performance.now() - t0) / 600; if (u.dying < 1) requestAnimationFrame(tick); else { u.dying = 0; res(); } }; tick(); }); }
   for (const u of [a, d]) { const up = u.side === 'p' && learn(u); if (up) banner(T().expUp(pname(u), up)); }

@@ -73,7 +73,7 @@ function choreograph(sc) {
   if (sc.seed == null) sc.seed = Math.floor(Math.random() * 1e5);
   const R = (a, b = 0) => hash(sc.seed + a * 7, b * 13 + 3, 29);
   const plan = { cam: Math.floor(R(1) * 4), enter: ['walk', 'dash', 'ready'][Math.floor(R(2) * 3)], side: {}, volleys: [], R };
-  ['L', 'R'].forEach((s, i) => { plan.side[s] = { sw: 1 + R(3, i) * 0.7, ph: R(4, i) * 6, crouch: R(5, i) * 0.3, twist: 0.24 + R(6, i) * 0.16 }; });
+  ['L', 'R'].forEach((s, i) => { plan.side[s] = { sw: 1 + R(3, i) * 0.7, ph: R(4, i) * 6, crouch: R(5, i) * 0.08, twist: 0.24 + R(6, i) * 0.16 }; });
   // volleys: the shots of one side in a row
   for (const e of sc.events) {
     let v = plan.volleys[plan.volleys.length - 1];
@@ -100,7 +100,7 @@ export function render(sc) {
     // the entrance: walking in, sliding in on the jets, or already standing ready
     const enter = clamp01(t / 0.5), left = 1 - enter;
     if (plan.enter === 'walk') { x -= f * 0.7 * left * left; if (enter < 1) { walk = 1; phase = t * 13; } }
-    else if (plan.enter === 'dash') { x -= f * 1.6 * left ** 3; lean += 0.3 * left; crouch += 0.4 * left; }
+    else if (plan.enter === 'dash') { x -= f * 1.6 * left ** 3; crouch += 0.3 * left; }
     else guard = Math.max(guard, 0.6 * left);
     // my volley, if one is under way
     const V = plan.volleys.find((v) => v.from === s && t > v.t0 - 0.75 && t < v.t1 + 0.4);
@@ -111,9 +111,9 @@ export function render(sc) {
         if (V.mode === 'crouch') crouch += 0.75 * env;
         else if (V.mode === 'advance') { x += f * 0.4 * q; walk = 0.45; phase = t * 9; }
         else if (V.mode === 'strafe') { z += V.dir * 0.4 * env; walk = 0.45; phase = t * 9; roll += V.dir * 0.05 * env; }
-        else if (V.mode === 'brace') { lean += 0.12 * env; armL = { s: -1.3 * env - 0.1, e: -0.5 * env - 0.6 * (1 - env) }; crouch += 0.25 * env; }
+        else if (V.mode === 'brace') { armL = { s: -1.3 * env - 0.1, e: -0.5 * env - 0.6 * (1 - env) }; crouch += 0.25 * env; }
       } else if (V.cat === 'long') {
-        if (V.mode === 'brace') { crouch += 0.6 * env; lean += 0.1 * env; }
+        if (V.mode === 'brace') crouch += 0.5 * env;
         if (V.mode === 'back') { x -= f * 0.3 * q; walk = 0.45; phase = t * 9; }
         guard = Math.max(guard, 0.4 * env);
       }
@@ -129,7 +129,7 @@ export function render(sc) {
         const reach = 2 * GAP - 1.0, sm = (v) => v * v * (3 - 2 * v);
         const inK = sm(clamp01((dt + 0.9) / 0.55)), outK = sm(clamp01((dt - 0.3) / 0.45)), c = inK * (1 - outK);
         const was = meleeC; meleeC = Math.max(meleeC, c); if (c > 0.02 && c < 0.98 && c >= was) { walk = 1; phase = t * (dt > 0.3 ? -14 : 16); }
-        if (e.approach === 'dash' && dt < -0.35) { walk = 0; lean += 0.3; crouch += 0.4; }
+        if (e.approach === 'dash' && dt < -0.35) { walk = 0; crouch += 0.3; }
         const wu = clamp01((dt + 0.32) / 0.24), st = clamp01((dt + 0.07) / 0.09), hold = dt > 0.02 && dt < 0.3;
         const arm = ITEM[u.wR]?.cat !== 'melee' && ITEM[u.wL]?.cat === 'melee' ? 'L' : 'R', set = (v) => { if (arm === 'L') armL = v; else armR = v; }, wrist = (v) => { if (arm === 'L') wristL = v; else wristR = v; };
         const mix = (a, b, k) => ({ s: a.s + (b.s - a.s) * k, e: a.e + (b.e - a.e) * k });
@@ -137,13 +137,13 @@ export function render(sc) {
         const pose2 = (back, hit) => set(st > 0 ? mix(back, hit, st) : mix(rest, back, wu));
         if (dt > -0.35) {
           if (e.style === 'side') { twist = st > 0 ? 1.0 - 1.9 * st : 0.3 + 0.7 * wu; pose2({ s: -1.45, e: -0.25 }, { s: -1.45, e: -0.15 }); wrist(1.2 * wu); }
-          else if (e.style === 'thrust') { twist = st > 0 ? 0.45 - 0.7 * st : 0.3 + 0.15 * wu; pose2({ s: -0.15, e: -1.9 }, { s: -1.6, e: 0 }); lean += 0.3 * st; wrist(1.5 * Math.max(wu, st)); }
+          else if (e.style === 'thrust') { twist = st > 0 ? 0.45 - 0.7 * st : 0.3 + 0.15 * wu; pose2({ s: -0.15, e: -1.9 }, { s: -1.6, e: 0 }); lean += 0.12 * st; wrist(1.5 * Math.max(wu, st)); }
           else if (e.style === 'upper') { crouch += 0.8 * wu * (1 - st); lean -= 0.18 * st; pose2({ s: 0.25, e: -0.5 }, { s: -2.5, e: -0.5 }); }
           else if (e.style === 'spin') { pose2({ s: -1.4, e: -0.3 }, { s: -1.5, e: -0.2 }); twist = 0.6 * wu * (1 - st); m.spin = st * Math.PI * 2 * -f; }
           else if (e.style === 'leap') { pose2({ s: -2.8, e: -0.3 }, { s: -0.5, e: -0.2 }); crouch += 0.6 * st; }
           else if (e.style === 'double') { const st2 = clamp01((dt + 0.2) / 0.08); set(st2 > 0 ? mix({ s: -2.6, e: -0.3 }, { s: -0.5, e: -0.2 }, st2) : st > 0 ? mix({ s: -1.4, e: -0.2 }, { s: -2.6, e: -0.3 }, st) : mix(rest, { s: -1.4, e: -0.2 }, wu)); twist = st > 0 ? 0.6 * (1 - st) : 0.6 * wu; }
-          else { pose2({ s: -2.7, e: -0.3 }, { s: -0.6, e: -0.2 }); lean += 0.22 * st; }
-          if (hold) lean += 0.08;
+          else { pose2({ s: -2.7, e: -0.3 }, { s: -0.6, e: -0.2 }); lean += 0.1 * st; }
+          
         }
         // a leap: up into the air while closing in, down with the blow
         if (e.style === 'leap' || e.approach === 'leap') { const k = clamp01((dt + 0.75) / 0.7); m.jump = Math.max(m.jump || 0, Math.sin(k * Math.PI) * 0.55 * (dt < -0.05 ? 1 : 0)); }
@@ -161,7 +161,7 @@ export function render(sc) {
         if (e.part === 'body') { lean -= amp * 0.34 * I; headKick += amp * 0.9 * I; roll += r * amp * 0.3 * I; }
         else if (e.part === 'armR') { kickR += amp * 1.1 * I; twist += amp * 0.4 * I; roll += 0.08 * amp * I; }
         else if (e.part === 'armL') { kickL += amp * 1.1 * I; twist -= amp * 0.4 * I; roll -= 0.08 * amp * I; }
-        else { crouch += amp * 0.8 * I; roll += r * amp * 0.35 * I; lean += amp * 0.12 * I; }
+        else { crouch += amp * 0.8 * I; roll += r * amp * 0.35 * I; }
         push += amp * (heavy ? 0.32 : 0.05) * I;
         // a heavy blow sends it staggering back a step or two
         if (heavy && dt > 0.06 && dt < 0.6) { walk = Math.max(walk, 0.45); phase = dt * 9; }
@@ -169,7 +169,7 @@ export function render(sc) {
         // a miss: it sidesteps or ducks
         const b = Math.sin(clamp01((dt + 0.15) / 0.65) * Math.PI), dir = R(34, e.n) > 0.5 ? 1 : -1;
         if (R(33, e.n) < 0.5) { z += dir * 0.3 * b; roll += dir * 0.12 * b; walk = Math.max(walk, 0.45); phase = t * 12; }
-        else { crouch += 0.7 * b; lean += 0.18 * b; }
+        else crouch += 0.65 * b;
       }
     }
     const dying = sc.dead?.[s] && t > sc.deadAt ? Math.min(1, (t - sc.deadAt) / 0.9) : 0;
