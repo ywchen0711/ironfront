@@ -279,3 +279,6 @@ function boom(g, x, y, r, k) {
     g.fillRect(x + xx, y + yy, 1, 1);
   }
 }
+
+// shared with the 3D battlefield, so both are painted from the same palettes
+export { P, hash, pickPal, shade, pine, crates, wreck };

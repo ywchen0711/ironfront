@@ -3,7 +3,8 @@
 import { MISSIONS, START, JOIN, PILOTS, ITEM, BODIES, ARMS, LEGS, WEAPONS, TERRAIN, TXT } from './data.js';
 import { makeUnit, alive, reach, weaponsOf, inRange, dist, hitChance, counterOf, fight, learn, weight, power, moveOf, evadeOf, PARTS, expected, repair } from './rules.js';
 import { plan } from './ai.js';
-import { drawMap, drawBattle, iso, TW, TH, prepare, raise, BATTLE_SIZE } from './render.js';
+import { drawBattle, BATTLE_SIZE } from './render.js';
+import * as W3 from './world3d.js';
 import { sfx, setMute, muted } from './sfx.js';
 
 const $ = (s) => document.querySelector(s), cv = $('#cv'), g = cv.getContext('2d');
@@ -22,59 +23,36 @@ const wait = (ms) => new Promise((r) => setTimeout(r, ms));
 const colon = () => (prefs.lang === 'en' ? ': ' : '：');
 
 // ---------------------------------------------------------------- canvas and camera
-// The battlefield is painted on a small canvas (low) and blown up PX times, so every pixel stays a crisp square.
-let VW = 960, VH = 600, PX = 2, cam = { x: 0, y: 0 }, mode = 'title', B = null, scene = null;
-const low = document.createElement('canvas'), lg = low.getContext('2d');
+// The battlefield is a 3D scene (world3d.js) rendered small and blown up PX times, so it keeps its pixels.
+// The 2D canvas on top only shows the side-on battle scene.
+let VW = 960, VH = 600, PX = 3, mode = 'title', B = null, scene = null;
+const gl = $('#gl');
 const bat = document.createElement('canvas'); bat.width = BATTLE_SIZE.w; bat.height = BATTLE_SIZE.h; const bg2 = bat.getContext('2d');
 const PL = { body: 'BODY', armL: 'ARM L', armR: 'ARM R', legs: 'LEGS' };
+W3.init(gl);
 function resize() {
   const r = $('#stage').getBoundingClientRect(), dpr = Math.min(2, window.devicePixelRatio || 1);
   VW = r.width; VH = r.height; cv.width = Math.round(VW * dpr); cv.height = Math.round(VH * dpr); cv.style.width = VW + 'px'; cv.style.height = VH + 'px';
   g.setTransform(dpr, 0, 0, dpr, 0, 0); g.imageSmoothingEnabled = false;
-  sizeLow();
+  PX = VW >= 1000 ? 3 : 2;
+  W3.resize(VW, VH, PX);
 }
-function sizeLow() { low.width = Math.ceil(VW / PX); low.height = Math.ceil(VH / PX); lg.imageSmoothingEnabled = false; }
-const hAt = (x, y) => raise(B.map[y][x]);
-function fitCam() {
-  const m = B.map, W = m[0].length, H = m.length, w = (W + H) * TW / 2, h = (W + H) * TH / 2 + 50;
-  // close up, as the old games were; the whole map if it fits at that size (drag to look around, + / - to zoom)
-  PX = VW >= 1000 && VH >= 640 ? 3 : 2;
-  sizeLow();
-  let mid = iso((W - 1) / 2, (H - 1) / 2);
-  if (w + 16 > low.width || h + 16 > low.height - 30) { const ps = B.units.filter((u) => u.side === 'p'); if (ps.length) mid = iso(ps.reduce((a, u) => a + u.x, 0) / ps.length + 2.5, ps.reduce((a, u) => a + u.y, 0) / ps.length - 2.5); }
-  cam.x = Math.round(low.width / 2 - mid.x); cam.y = Math.round(low.height / 2 - mid.y + 16);
-}
-function setZoom(px) {
-  const cx = low.width / 2 - cam.x, cy = low.height / 2 - cam.y;
-  PX = Math.max(1, Math.min(5, px)); sizeLow(); cam.x = Math.round(low.width / 2 - cx); cam.y = Math.round(low.height / 2 - cy);
-}
-function screenToTile(sx, sy) {
-  const wx = sx / PX - cam.x, wy = sy / PX - cam.y, m = B.map, W = m[0].length, H = m.length;
-  // the units first (their figures stand up above their squares), front to back
-  for (const u of B.units.filter(alive).sort((a, b) => (b.x + b.y) - (a.x + a.y))) { const p = iso(u.x, u.y), hy = hAt(u.x, u.y); if (Math.abs(wx - p.x) < 11 && wy > p.y - hy - 34 && wy < p.y - hy + 4) return { x: u.x, y: u.y }; }
-  for (let d = W + H - 2; d >= 0; d--) for (let x = 0; x <= d; x++) {
-    const y = d - x; if (x >= W || y >= H) continue;
-    const p = iso(x, y), hy = hAt(x, y);
-    if (Math.abs(wx - p.x) / (TW / 2) + Math.abs(wy - (p.y - hy)) / (TH / 2) <= 1) return { x, y };
-  }
-  return null;
-}
+const screenToTile = (cx, cy) => W3.pick(cx, cy);
 // a word over a unit on the map, like the "Fire" when it shoots
-function label(u, text, ms = 700, col) { const p = iso(u.x, u.y); B.labels.push({ x: p.x, y: p.y - hAt(u.x, u.y) - 38, text, col, until: performance.now() + ms }); }
+function label(u, text, ms = 700, col) { B.labels.push({ u, text, col, until: performance.now() + ms }); }
 
 // ---------------------------------------------------------------- the loop
 function frame() {
-  g.fillStyle = '#100e0c'; g.fillRect(0, 0, VW, VH);
   if ((mode === 'battle' || mode === 'scene') && B) {
     const now = performance.now(); B.labels = B.labels.filter((l) => now < l.until);
-    drawMap(lg, B, B.art, cam, highlights(), { sel: B.sel, cursor: B.hover, labels: B.labels });
-    g.drawImage(low, 0, 0, low.width * PX, low.height * PX);
+    W3.render(highlights(), { sel: B.sel, cursor: B.hover, labels: B.labels });
     if (scene) {
       scene.t = (now - scene.t0) / 1000; drawBattle(bg2, scene); panels();
       const k = Math.min(VW / BATTLE_SIZE.w, VH / BATTLE_SIZE.h), s = k >= 2 ? Math.floor(k) : k, w = BATTLE_SIZE.w * s, h = BATTLE_SIZE.h * s;
       g.fillStyle = '#000'; g.fillRect(0, 0, VW, VH); g.drawImage(bat, Math.round((VW - w) / 2), Math.round((VH - h) / 2), w, h);
-    }
-  }
+      cv.style.pointerEvents = 'auto';
+    } else { g.clearRect(0, 0, VW, VH); cv.style.pointerEvents = 'none'; }
+  } else { g.fillStyle = '#100e0c'; g.fillRect(0, 0, VW, VH); }
   requestAnimationFrame(frame);
 }
 function highlights() {
@@ -162,17 +140,17 @@ function equip(s, id) {
 // ---------------------------------------------------------------- a battle
 function sortie() {
   const M = MISSIONS[S.mi];
-  B = { M, map: M.map, units: [], turn: 1, step: 'idle', sel: null, camSet: false, art: prepare(M.map), labels: [] };
+  B = { M, map: M.map, units: [], turn: 1, step: 'idle', sel: null, labels: [] };
   M.p.forEach(([x, y], i) => { const r = S.roster[i]; if (r) B.units.push(makeUnit(r, 'p', x, y, { ri: i, face: 1 })); });
   for (const f of M.foes) B.units.push(makeUnit(f, 'e', f.x, f.y, { boss: !!f.boss, face: -1 }));
-  hideAll(); mode = 'battle'; resize(); fitCam();
+  hideAll(); mode = 'battle'; resize(); W3.load(B);
   $('#hud').hidden = false; hud(); sfx('start');
   banner(T().phaseP);
 }
 function hud() {
   const t = T(), M = B.M;
   $('#hud').innerHTML = `<div class="hl"><b>${esc(L(M))}</b><span>${t.turn(B.turn)}・${B.phase === 'e' ? t.theirs : t.yours}</span><small>${M.win === 'boss' ? t.winBoss(L(PILOTS[M.foes.find((f) => f.boss).pilot])) : t.winAll}</small></div>
-    <div class="hr"><button data-act="anim">🎬 ${t.anim}${colon()}${prefs.anim ? t.on : t.off}</button><button data-act="zin">＋</button><button data-act="zout">－</button><button data-act="mute">${muted() ? '🔇' : '🔊'}</button><button data-act="quit">${t.quit}</button><button class="end" data-act="end" ${B.phase === 'e' || B.busy ? 'disabled' : ''}>${t.endTurn} ▶</button></div>`;
+    <div class="hr"><button data-act="anim">🎬 ${t.anim}${colon()}${prefs.anim ? t.on : t.off}</button><button data-act="rotl" title="⟲">⟲</button><button data-act="rotr" title="⟳">⟳</button><button data-act="zin">＋</button><button data-act="zout">－</button><button data-act="mute">${muted() ? '🔇' : '🔊'}</button><button data-act="quit">${t.quit}</button><button class="end" data-act="end" ${B.phase === 'e' || B.busy ? 'disabled' : ''}>${t.endTurn} ▶</button></div>`;
 }
 function card(u) {
   const el = $('#card'); if (!u) { el.hidden = true; return; }
@@ -218,20 +196,20 @@ function walk(u, path) {
   return new Promise(async (res) => {
     const A = u.anim || (u.anim = { phase: 0, walk: 0 }); A.moving = true; let n = 0;
     for (const s of path) {
-      const a = iso(u.x, u.y), b = iso(s.x, s.y), from = { x: a.x, y: a.y - hAt(u.x, u.y) }, to = { x: b.x, y: b.y - hAt(s.x, s.y) };
-      u.face = to.x >= from.x ? 1 : -1;
+      const fx = u.x, fy = u.y, fh = W3.heightOf(B.map[fy][fx]), th = W3.heightOf(B.map[s.y][s.x]);
+      u.dir = Math.atan2(s.x - fx, s.y - fy);
       const t0 = performance.now(), dur = 230, ph0 = A.phase;
       u.x = s.x; u.y = s.y;
       // one step per square; the legs make half a stride in that time, so the feet keep pace with the ground
-      await new Promise((r) => { const tick = () => { const k = Math.min(1, (performance.now() - t0) / dur); u.ox = (from.x - to.x) * (1 - k); u.oy = (from.y - to.y) * (1 - k); A.phase = ph0 + k * Math.PI; if (k < 1) requestAnimationFrame(tick); else r(); }; tick(); });
+      await new Promise((r) => { const tick = () => { const k = Math.min(1, (performance.now() - t0) / dur); u.vx = fx + (s.x - fx) * k; u.vy = fy + (s.y - fy) * k; u.vh = fh + (th - fh) * Math.min(1, k * 1.6); A.phase = ph0 + k * Math.PI; if (k < 1) requestAnimationFrame(tick); else r(); }; tick(); });
       if (n++ % 1 === 0) sfx('step');
     }
-    u.ox = u.oy = 0; A.moving = false; res();
+    u.vx = u.vy = u.vh = undefined; A.moving = false; res();
   });
 }
 async function attack(a, w, d) {
   B.busy = true; hud(); menu(null);
-  a.face = d.x - d.y > a.x - a.y ? 1 : d.x - d.y < a.x - a.y ? -1 : a.face;
+  a.dir = Math.atan2(d.x - a.x, d.y - a.y); d.dir = Math.atan2(a.x - d.x, a.y - d.y); W3.focus((a.x + d.x) / 2, (a.y + d.y) / 2);
   const hpA = { ...a.hp }, hpD = { ...d.hp };
   const A = a.anim || (a.anim = { phase: 0, walk: 0 }), now = performance.now();
   A.aimUntil = now + 900; A.fireFrom = now + 380; label(a, 'Fire', 650); sfx('click'); await wait(600);
@@ -314,11 +292,7 @@ async function enemyTurn() {
   B.turn++; B.phase = 'p'; B.busy = false; for (const u of B.units) if (u.side === 'p') u.done = false;
   hud(); banner(T().phaseP); sfx('start');
 }
-function centreOn(u) {
-  const p = iso(u.x, u.y), tx = low.width / 2 - p.x, ty = low.height / 2 - p.y + hAt(u.x, u.y) + 10, sx = cam.x, sy = cam.y, t0 = performance.now();
-  const tick = () => { const k = Math.min(1, (performance.now() - t0) / 320), e = 1 - (1 - k) * (1 - k); cam.x = Math.round(sx + (tx - sx) * e * 0.6); cam.y = Math.round(sy + (ty - sy) * e * 0.6); if (k < 1) requestAnimationFrame(tick); };
-  tick();
-}
+function centreOn(u) { W3.focus(u.x, u.y); }
 async function endBattle(o) {
   B.phase = 'over'; B.busy = true; menu(null); card(null);
   const t = T(), M = B.M;
@@ -346,16 +320,34 @@ function resultBox(html, yes, no) {
 function hideAll() { for (const id of ['#screen', '#hud', '#card', '#menu', '#story', '#result']) $(id).hidden = true; }
 
 // ---------------------------------------------------------------- input
-let drag = null;
-cv.addEventListener('pointerdown', (e) => { if (mode !== 'battle') return; drag = { x: e.clientX, y: e.clientY, cx: cam.x, cy: cam.y, moved: false }; cv.setPointerCapture(e.pointerId); });
-cv.addEventListener('pointermove', (e) => {
-  const r = cv.getBoundingClientRect();
-  if (drag) { const dx = e.clientX - drag.x, dy = e.clientY - drag.y; if (Math.hypot(dx, dy) > 8) drag.moved = true; if (drag.moved) { cam.x = Math.round(drag.cx + dx / PX); cam.y = Math.round(drag.cy + dy / PX); } }
-  else if (B && mode === 'battle' && e.pointerType === 'mouse') B.hover = screenToTile(e.clientX - r.left, e.clientY - r.top);
+let drag = null; const touches = new Map();
+gl.addEventListener('contextmenu', (e) => e.preventDefault());
+gl.addEventListener('pointerdown', (e) => {
+  if (mode !== 'battle') return; gl.setPointerCapture(e.pointerId);
+  touches.set(e.pointerId, { x: e.clientX, y: e.clientY });
+  drag = { x: e.clientX, y: e.clientY, moved: false, pan: e.button === 2 || e.button === 1 || e.shiftKey || touches.size > 1, n: touches.size };
 });
-cv.addEventListener('pointerup', (e) => { if (!drag) return; const r = cv.getBoundingClientRect(); if (!drag.moved) tapTile(screenToTile(e.clientX - r.left, e.clientY - r.top)); drag = null; });
-let wheelT = 0;
-cv.addEventListener('wheel', (e) => { if (mode !== 'battle') return; e.preventDefault(); if (performance.now() - wheelT < 160) return; wheelT = performance.now(); setZoom(PX + (e.deltaY < 0 ? 1 : -1)); }, { passive: false });
+gl.addEventListener('pointermove', (e) => {
+  if (B && mode === 'battle' && e.pointerType === 'mouse' && !drag) B.hover = screenToTile(e.clientX, e.clientY);
+  if (!drag || !touches.has(e.pointerId)) return;
+  const prev = touches.get(e.pointerId), dx = e.clientX - prev.x, dy = e.clientY - prev.y;
+  if (touches.size >= 2) { // two fingers: move together to pan, apart to zoom
+    const [a, b] = [...touches.values()], d0 = Math.hypot(a.x - b.x, a.y - b.y); touches.set(e.pointerId, { x: e.clientX, y: e.clientY });
+    const [c, d] = [...touches.values()], d1 = Math.hypot(c.x - d.x, c.y - d.y); if (d0 > 0) W3.zoomBy(d1 / d0); W3.pan(dx / 2, dy / 2); drag.moved = true; return;
+  }
+  touches.set(e.pointerId, { x: e.clientX, y: e.clientY });
+  if (Math.hypot(e.clientX - drag.x, e.clientY - drag.y) > 6) drag.moved = true;
+  if (!drag.moved) return;
+  if (drag.pan) W3.pan(dx, dy); else W3.rotate(-dx * 0.008, dy * 0.003);
+});
+const up = (e) => {
+  if (!drag) return; touches.delete(e.pointerId);
+  if (!drag.moved && drag.n === 1 && touches.size === 0) tapTile(screenToTile(e.clientX, e.clientY));
+  if (touches.size === 0) drag = null;
+};
+gl.addEventListener('pointerup', up); gl.addEventListener('pointercancel', up);
+gl.addEventListener('wheel', (e) => { if (mode !== 'battle') return; e.preventDefault(); W3.zoomBy(e.deltaY < 0 ? 1.12 : 1 / 1.12); }, { passive: false });
+document.addEventListener('keydown', (e) => { if (mode !== 'battle') return; if (e.key === 'q' || e.key === 'Q') W3.snap(-Math.PI / 4); if (e.key === 'e' || e.key === 'E') W3.snap(Math.PI / 4); });
 document.addEventListener('click', async (e) => {
   const b = e.target.closest('button'); if (!b || b.disabled) return;
   const a = b.dataset.act;
@@ -370,7 +362,8 @@ document.addEventListener('click', async (e) => {
   else if (a === 'sortie') sortie();
   else if (a === 'anim') { prefs.anim = !prefs.anim; savePrefs(); hud(); }
   else if (a === 'mute') { setMute(!muted()); hud(); }
-  else if (a === 'zin' || a === 'zout') setZoom(PX + (a === 'zin' ? 1 : -1));
+  else if (a === 'zin' || a === 'zout') W3.zoomBy(a === 'zin' ? 1.25 : 0.8);
+  else if (a === 'rotl' || a === 'rotr') W3.snap(a === 'rotl' ? -Math.PI / 4 : Math.PI / 4);
   else if (a === 'quit') { if (confirm(T().quit + '?')) { B = null; base(); } }
   else if (a === 'end') { if (B && B.phase === 'p' && !B.busy) { B.sel = null; B.step = 'idle'; menu(null); card(null); await enemyTurn(); } }
   else if (b.dataset.w != null && B?.sel) { B.wsel = weaponsOf(B.sel)[+b.dataset.w]; B.step = 'target'; menu(`<p class="hint">${T().targetHint}</p><div class="acts"><button class="ghost" data-act="untarget">${T().back}</button></div>`); }
@@ -387,4 +380,4 @@ new ResizeObserver(resize).observe($('#stage'));
 document.documentElement.lang = prefs.lang === 'en' ? 'en' : 'zh-Hant';
 resize(); title(); requestAnimationFrame(frame);
 (async () => { try { cloud = await import('/save.js'); if (await cloud.pull(GAME, KEY) && mode === 'title') title(); } catch (e) { cloud = null; } })();
-window.IF = { endBattle, get B() { return B; }, get S() { return S; }, set S(v) { S = v; }, sortie, tapTile, enemyTurn, attack, prefs, MISSIONS };
+window.IF = { W3, endBattle, get B() { return B; }, get S() { return S; }, set S(v) { S = v; }, sortie, tapTile, enemyTurn, attack, prefs, MISSIONS };

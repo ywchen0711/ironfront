@@ -15,7 +15,8 @@ button:active:not(:disabled) { border-color: var(--shadow) var(--lite) var(--lit
 button:disabled { opacity: .45; cursor: default; }
 button.ghost { background: #6e6c56; }
 #stage { position: fixed; inset: 0; }
-#cv { position: absolute; inset: 0; touch-action: none; image-rendering: pixelated; }
+#gl, #cv { position: absolute; inset: 0; touch-action: none; image-rendering: pixelated; }
+#cv { pointer-events: none; }
 #hud { position: absolute; left: 0; right: 0; top: 0; display: flex; justify-content: space-between; gap: 8px; padding: 8px 10px; pointer-events: none; flex-wrap: wrap; }
 #hud > * { pointer-events: auto; }
 .hl { background: var(--box); border: 2px solid; border-color: var(--lite) var(--shadow) var(--shadow) var(--lite); box-shadow: 0 0 0 2px var(--edge); padding: 4px 10px; display: flex; flex-direction: column; min-width: 180px; }
