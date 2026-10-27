@@ -1,0 +1,242 @@
+// 鋼魂戰線 / Iron Front: the parts, the weapons, the pilots and the six missions.
+// Every wanzer (walking tank) is a body, two arms and legs; it carries a weapon in each hand and one on its shoulder.
+// The body's power output must carry the weight of everything else.
+
+export const BODIES = [
+  { id: 'B1', name: 'Pallas', hp: 90, power: 120, price: 0 },
+  { id: 'B2', name: 'Bastion', hp: 120, power: 140, price: 2400 },
+  { id: 'B4', name: 'Kestrel', hp: 105, power: 165, price: 4200 },
+  { id: 'B3', name: 'Goliath', hp: 160, power: 175, price: 5200 },
+];
+export const ARMS = [
+  { id: 'A1', name: 'Pallas-A', hp: 60, acc: 0, punch: 12, w: 14, price: 0 },
+  { id: 'A2', name: 'Bastion-A', hp: 80, acc: 3, punch: 16, w: 18, price: 1500 },
+  { id: 'A4', name: 'Kestrel-A', hp: 75, acc: 8, punch: 14, w: 16, price: 2800 },
+  { id: 'A3', name: 'Goliath-A', hp: 105, acc: 0, punch: 22, w: 24, price: 3200 },
+];
+export const LEGS = [
+  { id: 'L1', name: 'Pallas-L', hp: 80, move: 4, eva: 12, w: 22, price: 0 },
+  { id: 'L2', name: 'Bastion-L', hp: 110, move: 4, eva: 8, w: 28, price: 1800 },
+  { id: 'L4', name: 'Kestrel-L', hp: 90, move: 6, eva: 22, w: 24, price: 3400 },
+  { id: 'L3', name: 'Goliath-T', hp: 150, move: 3, eva: 0, w: 36, tread: true, price: 3600 },
+  { id: 'L5', name: 'Skimmer-H', hp: 95, move: 5, eva: 15, w: 30, hover: true, price: 4600 },
+];
+// cat: short (hand guns), melee (hand), shield (hand), long (shoulder: missiles and rockets)
+export const WEAPONS = [
+  { id: 'MG1', zh: 'MG-7 機槍', en: 'MG-7 machine gun', cat: 'short', dmg: 9, shots: 6, rmin: 1, rmax: 3, acc: 62, w: 10, price: 0 },
+  { id: 'SG1', zh: 'SG-4 霰彈槍', en: 'SG-4 shotgun', cat: 'short', dmg: 12, shots: 5, rmin: 1, rmax: 2, acc: 80, w: 12, price: 1200 },
+  { id: 'RF1', zh: 'RF-30 步槍', en: 'RF-30 rifle', cat: 'short', dmg: 32, shots: 2, rmin: 1, rmax: 3, acc: 72, w: 13, price: 1800 },
+  { id: 'MG2', zh: 'MG-12 重機槍', en: 'MG-12 heavy MG', cat: 'short', dmg: 12, shots: 6, rmin: 1, rmax: 3, acc: 60, w: 15, price: 2200 },
+  { id: 'RF2', zh: 'RF-50 狙擊步槍', en: 'RF-50 sniper rifle', cat: 'short', dmg: 55, shots: 1, rmin: 2, rmax: 4, acc: 78, w: 16, price: 3800 },
+  { id: 'RD1', zh: '電磁棍', en: 'Shock rod', cat: 'melee', dmg: 38, shots: 1, rmin: 1, rmax: 1, acc: 85, w: 8, price: 900 },
+  { id: 'KN1', zh: '衝擊拳套', en: 'Impact knuckle', cat: 'melee', dmg: 28, shots: 2, rmin: 1, rmax: 1, acc: 82, w: 9, price: 1400 },
+  { id: 'AX1', zh: '重斧', en: 'Heavy axe', cat: 'melee', dmg: 60, shots: 1, rmin: 1, rmax: 1, acc: 72, w: 14, price: 3000 },
+  { id: 'SH1', zh: '輕盾', en: 'Light shield', cat: 'shield', guard: 0.3, w: 10, price: 1000 },
+  { id: 'SH2', zh: '重盾', en: 'Heavy shield', cat: 'shield', guard: 0.45, w: 16, price: 2500 },
+  { id: 'RK1', zh: 'RK-2 火箭', en: 'RK-2 rockets', cat: 'long', dmg: 26, shots: 2, rmin: 2, rmax: 5, acc: 65, ammo: 6, w: 12, price: 1500 },
+  { id: 'MS1', zh: 'MS-4 飛彈', en: 'MS-4 missile', cat: 'long', dmg: 42, shots: 1, rmin: 3, rmax: 6, acc: 72, ammo: 4, w: 14, price: 2000 },
+  { id: 'MS2', zh: 'MS-8 重飛彈', en: 'MS-8 heavy missile', cat: 'long', dmg: 65, shots: 1, rmin: 3, rmax: 7, acc: 70, ammo: 3, w: 20, price: 4500 },
+];
+export const FIST = { id: 'FIST', zh: '拳頭', en: 'Fist', cat: 'melee', dmg: 0, shots: 1, rmin: 1, rmax: 1, acc: 80, w: 0 };
+export const ITEM = Object.fromEntries([...BODIES, ...ARMS, ...LEGS, ...WEAPONS].map((x) => [x.id, x]));
+
+// terrain: move cost (99 = cannot), height, evade bonus for the one standing on it
+export const TERRAIN = {
+  '.': { cost: 1, h: 0, eva: 0, zh: '草地', en: 'Grass', c: '#7fae5a' },
+  ',': { cost: 1, h: 0, eva: 0, zh: '沙地', en: 'Sand', c: '#d8c48a' },
+  r: { cost: 1, h: 0, eva: 0, zh: '道路', en: 'Road', c: '#9a958a' },
+  f: { cost: 2, h: 0, eva: 15, zh: '森林', en: 'Forest', c: '#4f8a44' },
+  h: { cost: 2, h: 1, eva: 5, zh: '丘陵', en: 'Hill', c: '#9aa860' },
+  H: { cost: 3, h: 2, eva: 10, zh: '高地', en: 'Highland', c: '#a89a6a' },
+  x: { cost: 2, h: 0, eva: 10, zh: '瓦礫', en: 'Rubble', c: '#8a8070' },
+  c: { cost: 2, h: 0, eva: 0, zh: '雪原', en: 'Snow', c: '#e8eef2' },
+  w: { cost: 99, h: -1, eva: 0, zh: '水', en: 'Water', c: '#4a8ac8', water: true },
+  b: { cost: 99, h: 3, eva: 0, zh: '建築', en: 'Building', c: '#8a8a96', block: true },
+  '#': { cost: 99, h: 2, eva: 0, zh: '牆', en: 'Wall', c: '#76706a', block: true },
+};
+
+// pilots: lv raises hit and evade; exp to the next level is lv * 100
+export const PILOTS = {
+  ron: { zh: '洛恩', en: 'Ron', lv: 4, color: '#3a6ab0' },
+  mia: { zh: '米雅', en: 'Mia', lv: 3, color: '#5aa0d8' },
+  karl: { zh: '卡爾', en: 'Karl', lv: 3, color: '#4a7a9a' },
+  lena: { zh: '莉娜', en: 'Lena', lv: 5, color: '#6a8ad0' },
+  duke: { zh: '杜克', en: 'Duke', lv: 6, color: '#3a5a8a' },
+  grunt: { zh: '同盟兵', en: 'Alliance pilot', lv: 1 },
+  vet: { zh: '同盟老兵', en: 'Alliance veteran', lv: 2 },
+  veit: { zh: '韋特少校', en: 'Major Veit', lv: 6 },
+  hound: { zh: '黑犬', en: 'Black Hound', lv: 9 },
+};
+// the squad at the start
+export const START = {
+  money: 3000,
+  roster: [
+    { pilot: 'ron', body: 'B1', armL: 'A1', armR: 'A1', legs: 'L1', wL: 'RD1', wR: 'MG1', sh: null },
+    { pilot: 'mia', body: 'B1', armL: 'A1', armR: 'A1', legs: 'L1', wL: null, wR: 'RF1', sh: 'MS1' },
+    { pilot: 'karl', body: 'B2', armL: 'A2', armR: 'A2', legs: 'L2', wL: 'SH1', wR: 'SG1', sh: null },
+  ],
+  inv: { MG1: 1, RD1: 1 },
+};
+// new pilots who join before a mission
+export const JOIN = {
+  2: { pilot: 'lena', body: 'B4', armL: 'A4', armR: 'A4', legs: 'L4', wL: null, wR: 'RF2', sh: null },
+  4: { pilot: 'duke', body: 'B3', armL: 'A3', armR: 'A3', legs: 'L3', wL: 'SH2', wR: 'MG2', sh: 'MS1' },
+};
+// enemy loadouts
+const E = {
+  rifle: { body: 'B1', armL: 'A1', armR: 'A1', legs: 'L1', wL: null, wR: 'RF1', sh: null },
+  mg: { body: 'B1', armL: 'A1', armR: 'A1', legs: 'L1', wL: 'RD1', wR: 'MG1', sh: null },
+  shot: { body: 'B2', armL: 'A2', armR: 'A2', legs: 'L2', wL: 'SH1', wR: 'SG1', sh: null },
+  missile: { body: 'B2', armL: 'A1', armR: 'A1', legs: 'L2', wL: null, wR: 'MG1', sh: 'RK1' },
+  brute: { body: 'B2', armL: 'A2', armR: 'A2', legs: 'L2', wL: 'AX1', wR: 'SG1', sh: null },
+  tank: { body: 'B3', armL: 'A3', armR: 'A3', legs: 'L3', wL: 'SH1', wR: 'MG2', sh: 'MS1' },
+  sniper: { body: 'B4', armL: 'A4', armR: 'A4', legs: 'L4', wL: null, wR: 'RF2', sh: 'MS1' },
+  hover: { body: 'B4', armL: 'A2', armR: 'A2', legs: 'L5', wL: 'KN1', wR: 'RF1', sh: 'RK1' },
+  veit: { body: 'B2', armL: 'A2', armR: 'A2', legs: 'L2', wL: 'SH1', wR: 'RF1', sh: 'MS1' },
+  hound: { body: 'B3', armL: 'A3', armR: 'A4', legs: 'L4', wL: 'AX1', wR: 'MG2', sh: 'MS2' },
+};
+const en = (pilot, kit, x, y, o = {}) => ({ pilot, ...E[kit], x, y, ...o });
+
+// the missions. map rows are written top (north) to bottom; p = where the squad starts
+export const MISSIONS = [
+  { id: 'm1', zh: '邊境哨站', en: 'Border Outpost', reward: 2500, shop: ['SG1', 'RD1', 'SH1', 'RK1', 'A2', 'L2'],
+    map: [
+      '....ff....hh..',
+      '...fff...hHh..',
+      '..ff.....hh...',
+      '.....rrrrrr...',
+      '.....r....r.f.',
+      '..x..r..b.r.ff',
+      '.....r....r...',
+      '.rrrrr....rrrr',
+      '..ff........f.',
+      '..f.....hh....',
+    ],
+    p: [[1, 8], [2, 9], [0, 7]],
+    foes: [en('grunt', 'mg', 9, 2), en('grunt', 'rifle', 11, 1), en('grunt', 'mg', 12, 4), en('grunt', 'shot', 10, 6)],
+    win: 'all',
+    brief: { zh: ['2097 年，艾瑞斯島。北方同盟與南洋聯合的停戰協定已經撐了三年。', '洛恩|鐵鴉小隊，聽好：邊境哨站失去聯絡。我們去看看。', '米雅|雷達上有四架同盟的機體……他們已經越過邊界了！', '卡爾|看來停戰結束了。'],
+      en: ['2097, Ares Island. The truce between the Northern Alliance and the Southern Union has held for three years.', 'Ron|Iron Ravens, listen up: we have lost contact with the border outpost. We are going in.', 'Mia|Four Alliance machines on radar… they have crossed the border!', 'Karl|Looks like the truce is over.'] },
+    after: { zh: ['洛恩|哨站守住了。但他們為什麼要攻擊這裡？', '米雅|殘骸裡找到命令書：下一個目標是南岸的港口。'], en: ['Ron|The outpost is ours. But why attack here?', 'Mia|Orders in the wreckage: their next target is the southern harbour.'] } },
+  { id: 'm2', zh: '南岸港口', en: 'Southern Harbour', reward: 3500, shop: ['RF1', 'KN1', 'MS1', 'B2', 'A2', 'L2', 'MG2'],
+    map: [
+      'wwwwwwwwwwwwwwww',
+      'wwwwwwwwrrwwwwww',
+      'ww,,,,,,rr,,,,ww',
+      'w,,b,,,,rr,,b,,w',
+      ',,,b,,x,rr,,b,,,',
+      ',,,,,,,,rr,,,,,,',
+      'rrrrrrrrrrrrrrrr',
+      '..f.....b.....f.',
+      '.ff..x..b...x.ff',
+      '.......hh.......',
+      '..f...hHHh....f.',
+      '.......hh.......',
+    ],
+    p: [[2, 10], [4, 11], [1, 9], [3, 9]],
+    foes: [en('grunt', 'rifle', 10, 3), en('grunt', 'mg', 6, 4), en('grunt', 'missile', 13, 2), en('grunt', 'shot', 11, 5), en('grunt', 'mg', 8, 2)],
+    win: 'all',
+    brief: { zh: ['洛恩|港口已經被佔領了。碼頭上的貨櫃可以當掩護。', '卡爾|注意那架背著火箭的，牠會從遠處打過來。'], en: ['Ron|The harbour has already fallen. Use the cargo on the docks for cover.', 'Karl|Watch the one with rockets on its back. It will hit us from afar.'] },
+    after: { zh: ['米雅|港口奪回來了！', '洛恩|有新消息：一位狙擊手要加入我們——莉娜，前同盟軍官。'], en: ['Mia|The harbour is back in our hands!', 'Ron|News: a sniper is joining us — Lena, a former Alliance officer.'] } },
+  { id: 'm3', zh: '黑木森林', en: 'Blackwood', reward: 4500, shop: ['RF2', 'SH2', 'AX1', 'B4', 'A4', 'L4'],
+    map: [
+      'ffff..ffff..ffff',
+      'ff....fff....fff',
+      'f..hh..f...hh..f',
+      '...hH.....hHh...',
+      '.f..h..ff...h.f.',
+      'fff...ffff...fff',
+      '.f...ff..ff...f.',
+      '....f......f....',
+      '.hh...rrrr...hh.',
+      'hHh..rr..rr..hHh',
+      '.hh.rr....rr.hh.',
+      '....r......r....',
+    ],
+    p: [[5, 11], [6, 10], [10, 11], [11, 10], [8, 9]],
+    foes: [en('veit', 'veit', 4, 3, { boss: true }), en('vet', 'rifle', 11, 3), en('grunt', 'mg', 7, 1), en('grunt', 'shot', 2, 5), en('grunt', 'missile', 12, 1), en('grunt', 'mg', 9, 4)],
+    win: 'boss',
+    brief: { zh: ['莉娜|森林深處的指揮官是韋特少校。我認得他。', '莉娜|只要擊倒他，其他人就會撤退。', '洛恩|樹林會讓人難以命中，好好利用。'], en: ['Lena|The commander deep in the woods is Major Veit. I know him.', 'Lena|Bring him down and the rest will fall back.', 'Ron|The trees make you hard to hit. Use them.'] },
+    after: { zh: ['韋特少校|……黑犬會替我報仇的。', '莉娜|「黑犬」……同盟最強的王牌。他在北方的要塞。'], en: ['Major Veit|…The Black Hound will avenge me.', 'Lena|The Black Hound… the Alliance\'s best ace. He holds the fortress in the north.'] } },
+  { id: 'm4', zh: '霜嶺補給線', en: 'Frostridge Supply Line', reward: 5000, shop: ['MS2', 'L3', 'B3', 'A3', 'L5'],
+    map: [
+      'cccccchhcccccccc',
+      'ccHcccchhcccchcc',
+      'cchhcccccccchHhc',
+      'cccccrrrrrrcchcc',
+      'ccccr,,,,,,rcccc',
+      'cxccr,,b,,,rccxc',
+      'ccccr,,,,,,rcccc',
+      'ccccrrrrrrrrcccc',
+      'cchcccccccccchcc',
+      'chHhccxcccccchHc',
+      'cchccccccccccchc',
+      'cccccccccccccccc',
+    ],
+    p: [[1, 11], [3, 11], [5, 11], [2, 10], [4, 10]],
+    foes: [en('grunt', 'tank', 7, 4), en('grunt', 'shot', 10, 6), en('grunt', 'rifle', 13, 2), en('grunt', 'missile', 2, 2), en('grunt', 'mg', 6, 6), en('grunt', 'shot', 9, 3)],
+    win: 'all',
+    brief: { zh: ['卡爾|雪地很難走，每一步都比平常吃力。', '洛恩|補給站在中間，有一架重裝戰車守著。打下它，補給線就斷了。'], en: ['Karl|Snow is heavy going — every step costs more.', 'Ron|The depot is in the middle, guarded by a heavy tank. Take it out and their supply line is cut.'] },
+    after: { zh: ['洛恩|補給線切斷了。接下來是首都外的城區。', '杜克|我是杜克，聯合軍的重裝部隊。司令部派我跟你們一起打進城。'], en: ['Ron|Their supply line is cut. Next, the city outside the capital.', 'Duke|Duke, Union heavy armour. Command sent me to go into the city with you.'] } },
+  { id: 'm5', zh: '舊城區', en: 'Old Town', reward: 6000, shop: ['MS2', 'AX1', 'RF2', 'SH2', 'L5', 'B3'],
+    map: [
+      'bb.rr.bbb.rr.bbb',
+      'b..rr..b..rr...b',
+      '...rr.....rr..x.',
+      'rrrrrrrrrrrrrrrr',
+      '.b.rr.bb..rr.b..',
+      '.b.rr.bb..rr.b..',
+      '...rr..x..rr....',
+      'rrrrrrrrrrrrrrrr',
+      'b..rr.b...rr..bb',
+      'bx.rr.b...rr..b.',
+      '...rr.....rr....',
+      '...rr..f..rr..f.',
+    ],
+    p: [[3, 11], [4, 11], [10, 11], [11, 11], [3, 10], [11, 10]],
+    foes: [en('vet', 'rifle', 3, 1), en('vet', 'hover', 10, 0), en('grunt', 'tank', 8, 3), en('grunt', 'missile', 12, 2), en('vet', 'brute', 5, 6), en('grunt', 'mg', 14, 4), en('vet', 'sniper', 0, 2)],
+    win: 'all',
+    brief: { zh: ['杜克|大樓擋住去路，只能沿著街道推進。', '米雅|小心轉角，敵人可能埋伏在後面。'], en: ['Duke|The buildings box us in. We push up the streets.', 'Mia|Careful at the corners — they may be waiting behind them.'] },
+    after: { zh: ['洛恩|城區拿下了。最後一站：北方要塞。', '莉娜|黑犬在等我們。'], en: ['Ron|The town is ours. Last stop: the northern fortress.', 'Lena|The Black Hound is waiting for us.'] } },
+  { id: 'm6', zh: '北方要塞', en: 'The Northern Fortress', reward: 8000, shop: [],
+    map: [
+      'hhHHHhhhhhHHHhhh',
+      'h###########hhhh',
+      'h#..r....r..#hhh',
+      'h#.x.rrrr.x.#..h',
+      'h#....b.....#..h',
+      'h##rr###rr###..h',
+      '...rr...rr......',
+      '.f.rr.x.rr..f...',
+      '...rr...rr...ff.',
+      'hh.rr..hhrr.....',
+      'hH.rr..hHrr..hh.',
+      'hh.rr....rr..hH.',
+    ],
+    p: [[3, 11], [4, 11], [9, 11], [10, 11], [3, 10], [10, 10]],
+    foes: [en('hound', 'hound', 6, 2, { boss: true }), en('vet', 'tank', 4, 3), en('vet', 'tank', 9, 3), en('vet', 'sniper', 2, 2), en('vet', 'missile', 11, 2), en('vet', 'brute', 3, 6), en('vet', 'hover', 9, 6)],
+    win: 'boss',
+    brief: { zh: ['黑犬|鐵鴉小隊。你們走到這裡，已經很了不起了。', '黑犬|但戰爭不是你們這種傭兵能結束的。', '洛恩|那就讓我們試試看。全員，進攻！'], en: ['Black Hound|Iron Ravens. Getting this far is quite something.', 'Black Hound|But a war is not something mercenaries like you can end.', 'Ron|Then let us try. All units, attack!'] },
+    after: { zh: ['黑犬|……原來如此。這就是你們的力量。', '洛恩|要塞陷落，同盟宣布停火。艾瑞斯島又迎來了和平。', '米雅|鐵鴉小隊，任務完成！'], en: ['Black Hound|…I see. So this is your strength.', 'Ron|The fortress has fallen, and the Alliance has called a ceasefire. Peace has come back to Ares Island.', 'Mia|Iron Ravens — mission complete!'] } },
+];
+
+export const TXT = {
+  zh: { title: '鋼魂戰線', sub: '機甲戰略模擬', start: '開始新遊戲', cont: '繼續', lang: 'English', mission: '任務', turn: (n) => `第 ${n} 回合`, yours: '我方回合', theirs: '敵方回合',
+    endTurn: '結束回合', repair: '修理', kits: '修理包', repaired: '修理完成', anim: '戰鬥動畫', on: '開', off: '關', move: '移動', attack: '攻擊', wait: '待機', cancel: '取消', fire: '開火！', back: '返回',
+    body: '機身', armL: '左臂', armR: '右臂', legs: '腿部', wL: '左手', wR: '右手', sh: '肩部', none: '（無）', weight: '重量', power: '出力', overweight: '超重！',
+    hit: '命中', dmg: '傷害', counter: '反擊', noCounter: '無法反擊', range: '射程', ammo: '彈藥', miss: 'MISS', destroyed: '破壞！', lost: '擊毀', lv: 'Lv',
+    winAll: '勝利條件：擊毀所有敵人', winBoss: (n) => `勝利條件：擊毀 ${n}`, lose: '失敗條件：我方全滅', victory: '任務完成！', defeat: '任務失敗', reward: (n) => `報酬 ${n}`,
+    base: '基地', hangar: '機庫', shop: '商店', sortie: '出擊', money: '資金', buy: '買', sell: '賣', owned: '庫存', equip: '裝備', briefing: '任務簡報', next: '下一步',
+    retry: '重新挑戰', toBase: '回基地', theEnd: '全部任務完成，謝謝遊玩！', tap: '點畫面繼續', select: '選擇', moveHint: '點藍色格子移動，點自己原地不動', targetHint: '點紅色的敵人',
+    phaseP: '我方回合開始', phaseE: '敵方回合', newGame: '確定要開新遊戲嗎？目前的進度會被覆蓋。', menu: '選單', quit: '放棄任務', expUp: (n, lv) => `${n} 升到 Lv${lv}！`,
+    cats: { short: '射擊', melee: '格鬥', shield: '盾', long: '飛彈' }, terr: '地形', eva: '迴避', moveN: '移動力', mp: '剩餘', boss: '指揮官' },
+  en: { title: 'Iron Front', sub: 'A wanzer tactics game', start: 'New game', cont: 'Continue', lang: '中文', mission: 'Mission', turn: (n) => `Turn ${n}`, yours: 'Your turn', theirs: 'Enemy turn',
+    endTurn: 'End turn', repair: 'Repair', kits: 'Repair kits', repaired: 'Repaired', anim: 'Battle scenes', on: 'on', off: 'off', move: 'Move', attack: 'Attack', wait: 'Wait', cancel: 'Cancel', fire: 'Fire!', back: 'Back',
+    body: 'Body', armL: 'Left arm', armR: 'Right arm', legs: 'Legs', wL: 'Left hand', wR: 'Right hand', sh: 'Shoulder', none: '(none)', weight: 'Weight', power: 'Power', overweight: 'Too heavy!',
+    hit: 'Hit', dmg: 'Damage', counter: 'Counter', noCounter: 'No counter', range: 'Range', ammo: 'Ammo', miss: 'MISS', destroyed: 'Destroyed!', lost: 'Destroyed', lv: 'Lv',
+    winAll: 'Win: destroy every enemy', winBoss: (n) => `Win: destroy ${n}`, lose: 'Lose: the whole squad is destroyed', victory: 'Mission complete!', defeat: 'Mission failed', reward: (n) => `Pay ${n}`,
+    base: 'Base', hangar: 'Hangar', shop: 'Shop', sortie: 'Sortie', money: 'Funds', buy: 'Buy', sell: 'Sell', owned: 'Owned', equip: 'Equip', briefing: 'Briefing', next: 'Next',
+    retry: 'Try again', toBase: 'Back to base', theEnd: 'Every mission complete — thank you for playing!', tap: 'Tap to go on', select: 'Select', moveHint: 'Tap a blue square to move, or the unit itself to stay', targetHint: 'Tap a red enemy',
+    phaseP: 'Your turn', phaseE: 'Enemy turn', newGame: 'Start a new game? Your current progress will be replaced.', menu: 'Menu', quit: 'Abandon mission', expUp: (n, lv) => `${n} reached Lv${lv}!`,
+    cats: { short: 'Gun', melee: 'Melee', shield: 'Shield', long: 'Missile' }, terr: 'Terrain', eva: 'Evade', moveN: 'Move', mp: 'Left', boss: 'Commander' },
+};
