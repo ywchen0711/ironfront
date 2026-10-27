@@ -3,7 +3,7 @@
 import { MISSIONS, START, JOIN, PILOTS, ITEM, BODIES, ARMS, LEGS, WEAPONS, TERRAIN, TXT } from './data.js';
 import { makeUnit, alive, reach, weaponsOf, inRange, dist, hitChance, counterOf, fight, learn, weight, power, moveOf, evadeOf, PARTS, expected, repair } from './rules.js';
 import { plan } from './ai.js';
-import { drawMap, drawBattle, iso, TW, TH } from './render.js';
+import { drawMap, drawBattle, iso, TW, TH, prepare, raise, BATTLE_SIZE } from './render.js';
 import { sfx, setMute, muted } from './sfx.js';
 
 const $ = (s) => document.querySelector(s), cv = $('#cv'), g = cv.getContext('2d');
@@ -22,49 +22,66 @@ const wait = (ms) => new Promise((r) => setTimeout(r, ms));
 const colon = () => (prefs.lang === 'en' ? ': ' : '：');
 
 // ---------------------------------------------------------------- canvas and camera
-let VW = 960, VH = 600, cam = { x: 0, y: 0, z: 1 }, mode = 'title', B = null, scene = null;
+// The battlefield is painted on a small canvas (low) and blown up PX times, so every pixel stays a crisp square.
+let VW = 960, VH = 600, PX = 2, cam = { x: 0, y: 0 }, mode = 'title', B = null, scene = null;
+const low = document.createElement('canvas'), lg = low.getContext('2d');
+const bat = document.createElement('canvas'); bat.width = BATTLE_SIZE.w; bat.height = BATTLE_SIZE.h; const bg2 = bat.getContext('2d');
+const PL = { body: 'BODY', armL: 'ARM L', armR: 'ARM R', legs: 'LEGS' };
 function resize() {
   const r = $('#stage').getBoundingClientRect(), dpr = Math.min(2, window.devicePixelRatio || 1);
   VW = r.width; VH = r.height; cv.width = Math.round(VW * dpr); cv.height = Math.round(VH * dpr); cv.style.width = VW + 'px'; cv.style.height = VH + 'px';
-  g.setTransform(dpr, 0, 0, dpr, 0, 0);
-  if (B && !B.camSet) fitCam();
+  g.setTransform(dpr, 0, 0, dpr, 0, 0); g.imageSmoothingEnabled = false;
+  sizeLow();
 }
+function sizeLow() { low.width = Math.ceil(VW / PX); low.height = Math.ceil(VH / PX); lg.imageSmoothingEnabled = false; }
+const hAt = (x, y) => raise(B.map[y][x]);
 function fitCam() {
-  const m = B.map, W = m[0].length, H = m.length, w = (W + H) * TW / 2, h = (W + H) * TH / 2 + 80;
-  cam.z = Math.min(1.4, Math.max(0.45, Math.min(VW / (w + 40), (VH - 40) / (h + 40))));
+  const m = B.map, W = m[0].length, H = m.length, w = (W + H) * TW / 2, h = (W + H) * TH / 2 + 50;
+  // close up, as the old games were; the whole map if it fits at that size (drag to look around, + / - to zoom)
+  PX = VW >= 1000 && VH >= 640 ? 3 : 2;
+  sizeLow();
   let mid = iso((W - 1) / 2, (H - 1) / 2);
-  // on a narrow screen the whole map would be tiny: zoom in on the squad instead (drag to look around)
-  if (VW < 700) { cam.z = Math.max(cam.z, 0.85); const ps = B.units.filter((u) => u.side === 'p'); if (ps.length) mid = iso(ps.reduce((s, u) => s + u.x, 0) / ps.length + 2, ps.reduce((s, u) => s + u.y, 0) / ps.length - 2); }
-  cam.x = VW / 2 - mid.x * cam.z; cam.y = VH / 2 - mid.y * cam.z + 10;
+  if (w + 16 > low.width || h + 16 > low.height - 30) { const ps = B.units.filter((u) => u.side === 'p'); if (ps.length) mid = iso(ps.reduce((a, u) => a + u.x, 0) / ps.length + 2.5, ps.reduce((a, u) => a + u.y, 0) / ps.length - 2.5); }
+  cam.x = Math.round(low.width / 2 - mid.x); cam.y = Math.round(low.height / 2 - mid.y + 16);
+}
+function setZoom(px) {
+  const cx = low.width / 2 - cam.x, cy = low.height / 2 - cam.y;
+  PX = Math.max(1, Math.min(5, px)); sizeLow(); cam.x = Math.round(low.width / 2 - cx); cam.y = Math.round(low.height / 2 - cy);
 }
 function screenToTile(sx, sy) {
-  const wx = (sx - cam.x) / cam.z, wy = (sy - cam.y) / cam.z, m = B.map, W = m[0].length, H = m.length;
+  const wx = sx / PX - cam.x, wy = sy / PX - cam.y, m = B.map, W = m[0].length, H = m.length;
   // the units first (their figures stand up above their squares), front to back
-  const us = B.units.filter(alive).sort((a, b) => (b.x + b.y) - (a.x + a.y));
-  for (const u of us) { const p = iso(u.x, u.y, Math.max(0, TERRAIN[m[u.y][u.x]].h)); if (Math.abs(wx - p.x) < 20 && wy > p.y - 56 && wy < p.y + 10) return { x: u.x, y: u.y }; }
-  for (let s = W + H - 2; s >= 0; s--) for (let x = 0; x <= s; x++) {
-    const y = s - x; if (x >= W || y >= H) continue;
-    const p = iso(x, y, Math.max(0, TERRAIN[m[y][x]].h));
-    if (Math.abs(wx - p.x) / (TW / 2) + Math.abs(wy - p.y) / (TH / 2) <= 1) return { x, y };
+  for (const u of B.units.filter(alive).sort((a, b) => (b.x + b.y) - (a.x + a.y))) { const p = iso(u.x, u.y), hy = hAt(u.x, u.y); if (Math.abs(wx - p.x) < 11 && wy > p.y - hy - 34 && wy < p.y - hy + 4) return { x: u.x, y: u.y }; }
+  for (let d = W + H - 2; d >= 0; d--) for (let x = 0; x <= d; x++) {
+    const y = d - x; if (x >= W || y >= H) continue;
+    const p = iso(x, y), hy = hAt(x, y);
+    if (Math.abs(wx - p.x) / (TW / 2) + Math.abs(wy - (p.y - hy)) / (TH / 2) <= 1) return { x, y };
   }
   return null;
 }
+// a word over a unit on the map, like the "Fire" when it shoots
+function label(u, text, ms = 700, col) { const p = iso(u.x, u.y); B.labels.push({ x: p.x, y: p.y - hAt(u.x, u.y) - 44, text, col, until: performance.now() + ms }); }
 
 // ---------------------------------------------------------------- the loop
 function frame() {
-  g.clearRect(0, 0, VW, VH);
-  if (mode === 'battle' || mode === 'scene') {
-    const bg = g.createLinearGradient(0, 0, 0, VH); bg.addColorStop(0, '#1a2430'); bg.addColorStop(1, '#2e3e4e'); g.fillStyle = bg; g.fillRect(0, 0, VW, VH);
-    drawMap(g, B, cam, highlights(), B.units, { sel: B.sel, cursor: B.hover });
-    if (scene) { scene.t = (performance.now() - scene.t0) / 1000; drawBattle(g, VW, VH, scene, T()); }
-  } else { const bg = g.createLinearGradient(0, 0, 0, VH); bg.addColorStop(0, '#0e1620'); bg.addColorStop(1, '#2a3a4a'); g.fillStyle = bg; g.fillRect(0, 0, VW, VH); }
+  g.fillStyle = '#100e0c'; g.fillRect(0, 0, VW, VH);
+  if ((mode === 'battle' || mode === 'scene') && B) {
+    const now = performance.now(); B.labels = B.labels.filter((l) => now < l.until);
+    drawMap(lg, B, B.art, cam, highlights(), { sel: B.sel, cursor: B.hover, labels: B.labels });
+    g.drawImage(low, 0, 0, low.width * PX, low.height * PX);
+    if (scene) {
+      scene.t = (now - scene.t0) / 1000; drawBattle(bg2, scene); panels();
+      const k = Math.min(VW / BATTLE_SIZE.w, VH / BATTLE_SIZE.h), s = k >= 2 ? Math.floor(k) : k, w = BATTLE_SIZE.w * s, h = BATTLE_SIZE.h * s;
+      g.fillStyle = '#000'; g.fillRect(0, 0, VW, VH); g.drawImage(bat, Math.round((VW - w) / 2), Math.round((VH - h) / 2), w, h);
+    }
+  }
   requestAnimationFrame(frame);
 }
 function highlights() {
   const h = new Map(), W = B.map[0].length;
-  if (B.step === 'move' && B.reach) for (const t of B.reach.tiles) h.set(t.y * W + t.x, '#3a8aff66');
-  if (B.step === 'target' && B.wsel) { for (let y = 0; y < B.map.length; y++) for (let x = 0; x < W; x++) if (inRange(B.wsel.w, Math.abs(x - B.sel.x) + Math.abs(y - B.sel.y))) h.set(y * W + x, '#ff8a3a33'); for (const e of targets(B.sel, B.wsel)) h.set(e.y * W + e.x, '#ff3a3a99'); }
-  if (B.peek) for (const t of B.peek.tiles) h.set(t.y * W + t.x, '#ff6a4a44');
+  if (B.step === 'move' && B.reach) for (const t of B.reach.tiles) h.set(t.y * W + t.x, 'move');
+  if (B.step === 'target' && B.wsel) { for (let y = 0; y < B.map.length; y++) for (let x = 0; x < W; x++) if (inRange(B.wsel.w, Math.abs(x - B.sel.x) + Math.abs(y - B.sel.y))) h.set(y * W + x, 'range'); for (const e of targets(B.sel, B.wsel)) h.set(e.y * W + e.x, 'att'); }
+  if (B.peek) for (const t of B.peek.tiles) h.set(t.y * W + t.x, 'peek');
   return h;
 }
 const targets = (u, w) => B.units.filter((o) => alive(o) && o.side !== u.side && inRange(w.w, dist(u, o)));
@@ -145,10 +162,10 @@ function equip(s, id) {
 // ---------------------------------------------------------------- a battle
 function sortie() {
   const M = MISSIONS[S.mi];
-  B = { M, map: M.map, units: [], turn: 1, step: 'idle', sel: null, camSet: false };
+  B = { M, map: M.map, units: [], turn: 1, step: 'idle', sel: null, camSet: false, art: prepare(M.map), labels: [] };
   M.p.forEach(([x, y], i) => { const r = S.roster[i]; if (r) B.units.push(makeUnit(r, 'p', x, y, { ri: i, face: 1 })); });
   for (const f of M.foes) B.units.push(makeUnit(f, 'e', f.x, f.y, { boss: !!f.boss, face: -1 }));
-  hideAll(); mode = 'battle'; resize(); fitCam(); B.camSet = true;
+  hideAll(); mode = 'battle'; resize(); fitCam();
   $('#hud').hidden = false; hud(); sfx('start');
   banner(T().phaseP);
 }
@@ -161,7 +178,7 @@ function card(u) {
   const el = $('#card'); if (!u) { el.hidden = true; return; }
   const t = T(), ws = weaponsOf(u);
   el.innerHTML = `<div class="ch ${u.side}"><b>${esc(pname(u))}</b> <small>${t.lv}${u.lv}${u.boss ? ' ★' + t.boss : ''}</small><span>${t.moveN} ${moveOf(u)}・${t.eva} ${evadeOf(u, B.map)}%${u.side === 'p' ? `・🔧${u.kits}` : ''}</span></div>
-    ${PARTS.map((p) => { const k = Math.max(0, u.hp[p]) / u.max[p]; return `<div class="hp"><span>${t[p]}</span><i><s style="width:${k * 100}%;background:${k <= 0 ? '#555' : k > 0.5 ? '#5ad05a' : k > 0.25 ? '#f0c040' : '#f05040'}"></s></i><em>${u.hp[p]}/${u.max[p]}</em></div>`; }).join('')}
+    <div class="rin">${PARTS.map((p) => { const k = Math.max(0, u.hp[p]) / u.max[p]; return `<div class="hp"><span>${PL[p]}</span><i><s style="width:${k * 100}%"></s></i><em>${u.hp[p]}</em></div>`; }).join('')}</div>
     <div class="ws">${ws.map((o) => `<span>${esc(o.slot === 'fist' ? L(o.w) : iname(o.w.id))} <small>${o.w.dmg}×${o.w.shots}・${o.w.rmin}-${o.w.rmax}${o.slot === 'sh' ? `・${u.ammo}` : ''}</small></span>`).join('')}</div>`;
   el.hidden = false;
 }
@@ -200,9 +217,9 @@ function preview() {
 function walk(u, path) {
   return new Promise(async (res) => {
     for (const s of path) {
-      const from = iso(u.x, u.y, Math.max(0, TERRAIN[B.map[u.y][u.x]].h)), to = iso(s.x, s.y, Math.max(0, TERRAIN[B.map[s.y][s.x]].h));
+      const a = iso(u.x, u.y), b = iso(s.x, s.y), from = { x: a.x, y: a.y - hAt(u.x, u.y) }, to = { x: b.x, y: b.y - hAt(s.x, s.y) };
       u.face = to.x >= from.x ? 1 : -1;
-      const t0 = performance.now(), dur = 120;
+      const t0 = performance.now(), dur = 150;
       u.x = s.x; u.y = s.y;
       await new Promise((r) => { const tick = () => { const k = Math.min(1, (performance.now() - t0) / dur); u.ox = (from.x - to.x) * (1 - k); u.oy = (from.y - to.y) * (1 - k); if (k < 1) requestAnimationFrame(tick); else r(); }; tick(); });
       sfx('step');
@@ -214,8 +231,10 @@ async function attack(a, w, d) {
   B.busy = true; hud(); menu(null);
   a.face = d.x - d.y > a.x - a.y ? 1 : d.x - d.y < a.x - a.y ? -1 : a.face;
   const hpA = { ...a.hp }, hpD = { ...d.hp };
+  label(a, 'Fire', 650); sfx('click'); await wait(500);
   const r = fight(a, w, d, B.map);
   await battleScene(r, hpA, hpD);
+  if (!prefs.anim) { const sum = (v) => v.hits.reduce((s2, h) => s2 + (h.dmg || 0), 0); label(d, sum(r.first) ? `-${sum(r.first)}` : 'Miss', 900, sum(r.first) ? '#a02010' : '#141410'); if (r.second) { await wait(450); label(a, sum(r.second) ? `-${sum(r.second)}` : 'Miss', 900, sum(r.second) ? '#a02010' : '#141410'); } await wait(700); }
   for (const u of [a, d]) if (!alive(u)) { u.dying = 0.01; sfx('boom'); const t0 = performance.now(); await new Promise((res) => { const tick = () => { u.dying = (performance.now() - t0) / 600; if (u.dying < 1) requestAnimationFrame(tick); else { u.dying = 0; res(); } }; tick(); }); }
   for (const u of [a, d]) { const up = u.side === 'p' && learn(u); if (up) banner(T().expUp(pname(u), up)); }
   B.busy = false; hud();
@@ -229,17 +248,19 @@ function battleScene(r, hpA, hpD) {
   const add = (vol, from, w) => { for (const h of vol.hits) { ev.push({ at: t, from, cat: w.w.cat, ...h, n: n++ }); t += w.w.cat === 'long' ? 0.6 : w.w.cat === 'melee' ? 0.5 : 0.13; } t += 0.5; };
   add(r.first, Ls, r.w);
   if (r.second) add(r.second, Rs, r.cw);
-  const sc = { L: left === 'att' ? r.att : r.def, R: left === 'att' ? r.def : r.att, events: ev, t: 0, t0: performance.now(), ground: TERRAIN[B.map[r.def.y][r.def.x]].c };
+  const sc = { L: left === 'att' ? r.att : r.def, R: left === 'att' ? r.def : r.att, events: ev, t: 0, t0: performance.now(), ground: B.map[r.def.y][r.def.x] };
   sc.nameL = `${pname(sc.L)} ${T().lv}${sc.L.lv}`; sc.nameR = `${pname(sc.R)} ${T().lv}${sc.R.lv}`;
   const startL = left === 'att' ? hpA : hpD, startR = left === 'att' ? hpD : hpA; sc.hpL = { ...startL }; sc.hpR = { ...startR };
   sc.dead = { L: !alive(sc.L), R: !alive(sc.R) }; sc.deadAt = t;
-  sc.label = `${esc(r.w.slot === 'fist' ? L(r.w.w) : iname(r.w.w.id))}${r.cw ? ` ⇄ ${r.cw.slot === 'fist' ? L(r.cw.w) : iname(r.cw.w.id)}` : ''}`;
+  const wn = (o) => (o ? (o.slot === 'fist' ? L(o.w) : iname(o.w.id)) : '');
+  sc.wL = left === 'att' ? wn(r.w) : wn(r.cw); sc.wR = left === 'att' ? wn(r.cw) : wn(r.w);
   const end = t + (sc.dead.L || sc.dead.R ? 1.4 : 0.5);
   mode = 'scene'; scene = sc;
   const shown = ['#hud', '#card', '#menu'].filter((id) => !$(id).hidden); shown.forEach((id) => { $(id).hidden = true; });
+  buildPanels(sc);
   return new Promise((res) => {
     let done = false, fired = new Set();
-    const finish = () => { if (done) return; done = true; scene = null; mode = 'battle'; shown.forEach((id) => { if (id === '#hud') $(id).hidden = false; }); cv.removeEventListener('pointerdown', finish); res(); };
+    const finish = () => { if (done) return; done = true; scene = null; mode = 'battle'; $('#bpan').hidden = true; shown.forEach((id) => { if (id === '#hud') $(id).hidden = false; }); cv.removeEventListener('pointerdown', finish); res(); };
     cv.addEventListener('pointerdown', finish);
     const tick = () => {
       if (done) return;
@@ -250,6 +271,19 @@ function battleScene(r, hpA, hpD) {
     };
     tick();
   });
+}
+function buildPanels(sc) {
+  const one = (s) => `<div class="rp ${sc[s].side}"><div class="rt">${esc(s === 'L' ? sc.nameL : sc.nameR)}</div><div class="rin">${PARTS.map((p) => `<div class="hp" data-p="${s}${p}"><span>${PL[p]}</span><i><s></s></i><em></em></div>`).join('')}</div><div class="rw">${esc(sc['w' + s] || '—')}</div></div>`;
+  $('#bpan').innerHTML = one('L') + one('R'); $('#bpan').hidden = false; panels();
+}
+function panels() {
+  if (!scene) return;
+  for (const s of ['L', 'R']) for (const p of PARTS) {
+    const el = document.querySelector(`[data-p="${s}${p}"]`); if (!el) continue;
+    const v = Math.max(0, Math.round(scene['hp' + s][p])), k = v / scene[s].max[p];
+    const bar = el.querySelector('s'), num = el.querySelector('em');
+    if (num.textContent !== String(v)) { num.textContent = v; bar.style.width = k * 100 + '%'; el.classList.toggle('dead', v <= 0); }
+  }
 }
 function over() {
   const ps = B.units.filter((u) => u.side === 'p'), es = B.units.filter((u) => u.side === 'e');
@@ -277,8 +311,8 @@ async function enemyTurn() {
   hud(); banner(T().phaseP); sfx('start');
 }
 function centreOn(u) {
-  const p = iso(u.x, u.y), tx = VW / 2 - p.x * cam.z, ty = VH / 2 - p.y * cam.z, sx = cam.x, sy = cam.y, t0 = performance.now();
-  const tick = () => { const k = Math.min(1, (performance.now() - t0) / 300), e = 1 - (1 - k) * (1 - k); cam.x = sx + (tx - sx) * e * 0.6; cam.y = sy + (ty - sy) * e * 0.6; if (k < 1) requestAnimationFrame(tick); };
+  const p = iso(u.x, u.y), tx = low.width / 2 - p.x, ty = low.height / 2 - p.y + hAt(u.x, u.y) + 10, sx = cam.x, sy = cam.y, t0 = performance.now();
+  const tick = () => { const k = Math.min(1, (performance.now() - t0) / 320), e = 1 - (1 - k) * (1 - k); cam.x = Math.round(sx + (tx - sx) * e * 0.6); cam.y = Math.round(sy + (ty - sy) * e * 0.6); if (k < 1) requestAnimationFrame(tick); };
   tick();
 }
 async function endBattle(o) {
@@ -312,11 +346,12 @@ let drag = null;
 cv.addEventListener('pointerdown', (e) => { if (mode !== 'battle') return; drag = { x: e.clientX, y: e.clientY, cx: cam.x, cy: cam.y, moved: false }; cv.setPointerCapture(e.pointerId); });
 cv.addEventListener('pointermove', (e) => {
   const r = cv.getBoundingClientRect();
-  if (drag) { const dx = e.clientX - drag.x, dy = e.clientY - drag.y; if (Math.hypot(dx, dy) > 8) drag.moved = true; if (drag.moved) { cam.x = drag.cx + dx; cam.y = drag.cy + dy; } }
+  if (drag) { const dx = e.clientX - drag.x, dy = e.clientY - drag.y; if (Math.hypot(dx, dy) > 8) drag.moved = true; if (drag.moved) { cam.x = Math.round(drag.cx + dx / PX); cam.y = Math.round(drag.cy + dy / PX); } }
   else if (B && mode === 'battle' && e.pointerType === 'mouse') B.hover = screenToTile(e.clientX - r.left, e.clientY - r.top);
 });
 cv.addEventListener('pointerup', (e) => { if (!drag) return; const r = cv.getBoundingClientRect(); if (!drag.moved) tapTile(screenToTile(e.clientX - r.left, e.clientY - r.top)); drag = null; });
-cv.addEventListener('wheel', (e) => { if (mode !== 'battle') return; e.preventDefault(); const r = cv.getBoundingClientRect(), mx = e.clientX - r.left, my = e.clientY - r.top, z = Math.max(0.4, Math.min(2, cam.z * (e.deltaY < 0 ? 1.1 : 0.9))); cam.x = mx - (mx - cam.x) * z / cam.z; cam.y = my - (my - cam.y) * z / cam.z; cam.z = z; }, { passive: false });
+let wheelT = 0;
+cv.addEventListener('wheel', (e) => { if (mode !== 'battle') return; e.preventDefault(); if (performance.now() - wheelT < 160) return; wheelT = performance.now(); setZoom(PX + (e.deltaY < 0 ? 1 : -1)); }, { passive: false });
 document.addEventListener('click', async (e) => {
   const b = e.target.closest('button'); if (!b || b.disabled) return;
   const a = b.dataset.act;
@@ -331,7 +366,7 @@ document.addEventListener('click', async (e) => {
   else if (a === 'sortie') sortie();
   else if (a === 'anim') { prefs.anim = !prefs.anim; savePrefs(); hud(); }
   else if (a === 'mute') { setMute(!muted()); hud(); }
-  else if (a === 'zin' || a === 'zout') { const z = Math.max(0.4, Math.min(2, cam.z * (a === 'zin' ? 1.2 : 1 / 1.2))); cam.x = VW / 2 - (VW / 2 - cam.x) * z / cam.z; cam.y = VH / 2 - (VH / 2 - cam.y) * z / cam.z; cam.z = z; }
+  else if (a === 'zin' || a === 'zout') setZoom(PX + (a === 'zin' ? 1 : -1));
   else if (a === 'quit') { if (confirm(T().quit + '?')) { B = null; base(); } }
   else if (a === 'end') { if (B && B.phase === 'p' && !B.busy) { B.sel = null; B.step = 'idle'; menu(null); card(null); await enemyTurn(); } }
   else if (b.dataset.w != null && B?.sel) { B.wsel = weaponsOf(B.sel)[+b.dataset.w]; B.step = 'target'; menu(`<p class="hint">${T().targetHint}</p><div class="acts"><button class="ghost" data-act="untarget">${T().back}</button></div>`); }
