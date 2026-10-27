@@ -10,6 +10,7 @@ export function makeUnit(k, side, x, y, extra = {}) {
   const u = { side, pilot: k.pilot, lv: k.lv ?? PILOTS[k.pilot].lv, exp: k.exp || 0, x, y, done: false, moved: false, ...extra };
   for (const p of PARTS) u[p] = k[p];
   for (const s of SLOTS) u[s] = k[s] || null;
+  u.paint = k.paint || null;
   u.hp = {}; for (const p of PARTS) u.hp[p] = ITEM[u[p]].hp;
   u.max = { ...u.hp };
   u.ammo = u.sh ? ITEM[u.sh].ammo : 0;

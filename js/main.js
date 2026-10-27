@@ -5,6 +5,8 @@ import { makeUnit, alive, reach, weaponsOf, inRange, dist, hitChance, counterOf,
 import { plan } from './ai.js';
 import { drawBattleFx } from './render.js';
 import * as B3 from './battle3d.js';
+import * as Doll from './doll.js';
+import { SCHEMES, schemeColour } from './mech3d.js';
 import * as W3 from './world3d.js';
 import { sfx, setMute, muted } from './sfx.js';
 
@@ -106,7 +108,8 @@ function base() {
   if (baseTab === 'hangar') {
     const r = S.roster[hsel] || S.roster[0];
     body = `<div class="roster">${S.roster.map((x, i) => `<button class="pilot ${i === hsel ? 'on' : ''} ${weight(x) > power(x) ? 'warn' : ''}" data-h="${i}"><b>${esc(L(PILOTS[x.pilot]))}</b><small>${t.lv}${x.lv}</small></button>`).join('')}</div>
-      <div class="slots">${['body', 'armL', 'armR', 'legs', 'wR', 'wL', 'sh'].map((s) => slotRow(r, s)).join('')}</div>
+      <div class="bay"><div class="dollbox"><div id="doll"></div><div class="paints"><span>${t.paint}</span>${SCHEMES.map((k) => `<button class="sw ${(r.paint || 'olive') === k ? 'on' : ''}" data-paint="${k}" title="${esc(L(PAINT_NAMES[k]))}" style="background:${schemeColour(k)}"></button>`).join('')}</div></div>
+      <div class="slots">${['body', 'armL', 'armR', 'legs', 'wR', 'wL', 'sh'].map((s) => slotRow(r, s)).join('')}</div></div>
       <div class="wbar ${weight(r) > power(r) ? 'bad' : ''}">${t.weight} ${weight(r)} / ${t.power} ${power(r)}${weight(r) > power(r) ? ' — ' + t.overweight : ''}<i style="width:${Math.min(100, weight(r) / power(r) * 100)}%"></i></div>
       <div class="stats">${t.moveN} ${ITEM[r.legs].move}・${t.eva} ${ITEM[r.legs].eva}・HP ${PARTS.map((p) => ITEM[r[p]].hp).join(' / ')}</div>`;
   } else {
@@ -118,7 +121,9 @@ function base() {
     <div class="tabs"><button class="${baseTab === 'hangar' ? 'on' : ''}" data-tab="hangar">🔧 ${t.hangar}</button><button class="${baseTab === 'shop' ? 'on' : ''}" data-tab="shop">🛒 ${t.shop}</button></div>
     ${body}<button class="big" data-act="sortie" ${over.length ? 'disabled' : ''}>▶ ${t.sortie}${over.length ? `<small>${over.map((x) => L(PILOTS[x.pilot])).join(', ')}${colon()}${t.overweight}</small>` : ''}</button></div>`;
   $('#screen').hidden = false;
+  if (baseTab === 'hangar') Doll.show($('#doll'), S.roster[hsel] || S.roster[0]);
 }
+const PAINT_NAMES = { olive: { zh: '橄欖綠', en: 'Olive' }, desert: { zh: '沙漠', en: 'Desert' }, navy: { zh: '海軍藍', en: 'Navy' }, arctic: { zh: '雪地灰', en: 'Arctic' }, crimson: { zh: '赤紅', en: 'Crimson' }, black: { zh: '暗夜黑', en: 'Night' } };
 function describe(id) {
   const x = ITEM[id], t = T();
   if (x.power) return `HP ${x.hp}・${t.power} ${x.power}`;
@@ -360,6 +365,7 @@ document.addEventListener('click', async (e) => {
   else if (a === 'lang') { prefs.lang = prefs.lang === 'en' ? 'zh' : 'en'; savePrefs(); document.documentElement.lang = prefs.lang === 'en' ? 'en' : 'zh-Hant'; mode === 'base' ? base() : title(); }
   else if (b.dataset.tab) { baseTab = b.dataset.tab; base(); }
   else if (b.dataset.h) { hsel = +b.dataset.h; base(); }
+  else if (b.dataset.paint) { (S.roster[hsel] || S.roster[0]).paint = b.dataset.paint; save(); sfx('click'); base(); }
   else if (b.dataset.buy) { const x = ITEM[b.dataset.buy]; if (S.money >= x.price) { S.money -= x.price; S.inv[x.id] = (S.inv[x.id] || 0) + 1; save(); sfx('buy'); base(); } }
   else if (b.dataset.sell) { const x = ITEM[b.dataset.sell]; S.inv[x.id]--; if (!S.inv[x.id]) delete S.inv[x.id]; S.money += Math.floor(x.price / 2); save(); sfx('buy'); base(); }
   else if (a === 'sortie') sortie();

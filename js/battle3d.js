@@ -7,6 +7,7 @@ import * as W3 from './world3d.js';
 import { P, hash } from './render.js';
 import { ITEM } from './data.js';
 
+const cam = { x: 0 };
 let scn = null, cmr = null, sun = null, groundMesh = null, groundKey = '', sideMech = {}, key = null;
 export const debug = {}; // a test can point the camera anywhere
 const GAP = 1.3; // each machine stands this far from the middle
@@ -57,7 +58,7 @@ export function start(sc) {
     holder.rotation.y = s === 'L' ? Math.PI / 2 : -Math.PI / 2; holder.position.x = s === 'L' ? -GAP : GAP;
     scn.add(holder); sideMech[s] = m;
   }
-  key = sc;
+  key = sc; cam.x = 0;
 }
 
 const v3 = new THREE.Vector3();
@@ -72,26 +73,50 @@ export function render(sc) {
   cmr.updateProjectionMatrix();
   const out = {};
   for (const s of ['L', 'R']) {
-    const m = sideMech[s], u = sc[s], f = s === 'L' ? 1 : -1, mine = sc.events.filter((e) => e.from === s);
+    const m = sideMech[s], u = sc[s], f = s === 'L' ? 1 : -1, mine = sc.events.filter((e) => e.from === s), theirs = sc.events.filter((e) => e.from !== s);
     const busy = mine.filter((e) => t > e.at - 0.5 && t < e.at + 0.3), guns = busy.some((e) => e.cat === 'short');
     const melee = mine.find((e) => e.cat === 'melee' && t > e.at - 0.35 && t < e.at + 0.3);
     const shot = mine.some((e) => e.cat === 'short' && t > e.at - 0.16 && t < e.at - 0.08);
-    const hits = sc.events.filter((e) => e.from !== s && !e.miss && t >= e.at && t < e.at + 0.25);
-    // a melee blow: charge across, raise the arm, bring it down at the moment of the hit
-    let x = -f * GAP, swing = null;
+    const launch = mine.find((e) => e.cat === 'long' && t > e.at - 0.6 && t < e.at - 0.35);
+    const hits = theirs.filter((e) => !e.miss && t >= e.at && t < e.at + 0.25);
+    // braced for what is coming: the guard goes up just before the other side fires
+    const incoming = !busy.length && theirs.some((e) => t > e.at - 0.6 && t < e.at + 0.2);
+    // they walk in from either side at the start
+    const enter = Math.min(1, t / 0.5), walkIn = enter < 1;
+    let x = -f * (GAP + 0.7 * (1 - (1 - (1 - enter) ** 2))), swing = null;
     if (melee) {
       const k = 1 - Math.abs(t - melee.at) / 0.35; x += f * (2 * GAP - 1.0) * Math.min(1, k * 1.6);
       const q = Math.max(0, Math.min(1, (t - (melee.at - 0.3)) / 0.4)); swing = q < 0.7 ? -0.4 - 2.2 * (q / 0.7) : -2.6 + 1.9 * ((q - 0.7) / 0.3);
     }
+    // each hit shoves it back and rocks the torso, heavier blows more
+    let push = 0;
+    for (const e of theirs) { const dt = t - e.at; if (e.miss || dt < 0 || dt > 1.2) continue; const amp = e.cat === 'long' ? 0.24 : e.cat === 'melee' ? 0.2 : 0.035; push += amp * (dt < 0.06 ? dt / 0.06 : Math.exp(-(dt - 0.06) * 4)); }
     const dying = sc.dead?.[s] && t > sc.deadAt ? Math.min(1, (t - sc.deadAt) / 0.9) : 0;
-    const jolt = hits.length ? Math.sin(t * 70) * 0.03 : 0;
-    m.holder.position.set(x - f * jolt, -dying * 0.25, 0);
+    const jolt = hits.length ? Math.sin(t * 70) * 0.02 : 0;
+    // feet a little apart in depth and turned a little towards us; the shoulders turn back to face the enemy
+    m.holder.position.set(x - f * (jolt + push * 0.6), -dying * 0.25, f * 0.22);
+    m.holder.rotation.y = f * (Math.PI / 2 - 0.32);
     m.group.rotation.x = -dying * dying * 1.1; // a destroyed machine topples backwards
-    poseMech(m, { ...u, hp: sc['hp' + s] }, { t, walk: melee ? 1 : 0, phase: t * 16, aim: guns ? 1 : 0, muzzle: shot, recoil: shot ? 1 : 0, flinch: hits.length ? Math.sin(t * 60) : 0, swing, swingL: ITEM[u.wR]?.cat !== 'melee' && ITEM[u.wL]?.cat === 'melee' });
+    const sway = Math.sin(t * 1.25 + (s === 'L' ? 0 : 2.1));
+    poseMech(m, { ...u, hp: sc['hp' + s] }, {
+      t, walk: melee || walkIn ? 1 : 0, phase: t * (walkIn ? 13 : 16), aim: guns ? 1 : 0, muzzle: shot, recoil: shot ? 1 : 0,
+      flinch: hits.length ? Math.sin(t * 60) : 0, swing, swingL: ITEM[u.wR]?.cat !== 'melee' && ITEM[u.wL]?.cat === 'melee',
+      stance: dying ? 0 : 1, sway: walkIn ? 0 : sway, twist: 0.32 * (melee ? 0.3 : 1), look: 0,
+      lean: -push * 1.3 + (launch ? -0.1 : 0) + (melee ? 0.12 : 0) + dying * 0.2, guard: incoming ? 1 : 0,
+    });
     // the part that is hit flashes white
     const lit = {}; for (const e of hits) lit[e.part] = Math.floor((t - e.at) * 30) % 2 === 0;
     for (const p of ['body', 'armL', 'armR', 'legs']) m.flash(p, !!lit[p], sc['hp' + s][p] <= 0);
     m.fade(dying > 0.7 ? 1 - (dying - 0.7) / 0.3 * 0.6 : 1);
+  }
+  // the camera drifts, leans towards whoever is acting and shakes with the heavy hits
+  const act = sc.events.find((e) => t > e.at - 0.7 && t < e.at + 0.4);
+  cam.x += (((act ? (act.from === 'L' ? -0.35 : 0.35) : 0) + Math.sin(t * 0.3) * 0.2) - cam.x) * 0.04;
+  let shake = 0; for (const e of sc.events) { const dt = t - e.at; if (!e.miss && dt > 0 && dt < 0.3 && e.cat !== 'short') shake = Math.max(shake, (1 - dt / 0.3) * 0.05); }
+  if (sc.dead && (sc.dead.L || sc.dead.R) && t > sc.deadAt && t < sc.deadAt + 0.6) shake = Math.max(shake, 0.06);
+  if (!debug.pos) {
+    const d = dist * (1 - Math.min(1, t / 4) * 0.06);
+    cmr.position.set(1.1 + cam.x + (Math.random() - 0.5) * shake, 1.0 + d * 0.05 + (Math.random() - 0.5) * shake, d); cmr.lookAt(cam.x * 0.8, 0.9, 0); cmr.updateProjectionMatrix();
   }
   W3.renderWith(scn, cmr);
   // where everything is on screen

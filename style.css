@@ -64,6 +64,12 @@ button.ghost { background: #6e6c56; }
 .next { padding: 6px 12px; margin: 12px 0; color: var(--ink); }
 .tabs { display: flex; gap: 10px; margin-bottom: 12px; } .tabs button.on, .pilot.on { background: #b49a4a; }
 .roster { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 12px; } .pilot { display: flex; flex-direction: column; min-width: 84px; } .pilot.warn { background: #b46a4a; } .pilot small { font-family: var(--pix); font-size: 18px; font-weight: 400; }
+.bay { display: flex; gap: 12px; align-items: flex-start; } .bay .slots { flex: 1; min-width: 0; }
+.dollbox { flex: 0 0 260px; background: radial-gradient(ellipse at 50% 35%, #3a3a3a, #161616 75%); box-shadow: 0 0 0 2px var(--edge); border: 2px solid; border-color: var(--shadow) var(--lite) var(--lite) var(--shadow); }
+#doll { height: 300px; } canvas.doll { display: block; width: 100%; height: 100%; image-rendering: pixelated; cursor: grab; touch-action: none; }
+.paints { display: flex; gap: 6px; align-items: center; padding: 6px 8px; background: #0006; } .paints span { color: #c8c6aa; font-size: 12px; margin-right: 2px; }
+.paints .sw { width: 24px; height: 24px; min-width: 0; padding: 0; } .paints .sw.on { outline: 2px solid #ffe14a; outline-offset: 1px; }
+@media (max-width: 640px) { .bay { flex-direction: column; align-items: stretch; } .dollbox { flex-basis: auto; } #doll { height: 240px; } }
 .slots { display: grid; gap: 8px; } .slot { display: grid; grid-template-columns: 74px 1fr; gap: 2px 8px; align-items: center; padding: 4px 10px; color: var(--ink); }
 .slot span { font-weight: 700; } .slot select { background: var(--box2); border: 2px solid; border-color: var(--shadow) var(--lite) var(--lite) var(--shadow); padding: 4px; } .slot small { grid-column: 2; color: var(--mute); font-size: 12px; }
 .wbar { position: relative; margin: 12px 0 6px; padding: 6px 12px 10px; color: var(--ink); font-weight: 700; } .wbar i { position: absolute; left: 4px; bottom: 3px; height: 4px; background: var(--edge); max-width: calc(100% - 8px); } .wbar.bad { background: #b46a4a; }

@@ -9,6 +9,33 @@ import { ITEM } from './data.js';
 import { TOON } from './world3d.js';
 import { hash } from './render.js';
 
+// paint schemes the player can pick in the hangar; accents are the same colours a shade darker
+const SCHEME = {
+  olive: { paint: ['#2c3a20', '#40542a', '#5a7436', '#74904a', '#96b064'], trim: '#d8b44a' },
+  desert: { paint: ['#4a3c26', '#665234', '#86703e', '#a48c54', '#c4aa72'], trim: '#c84a2a' },
+  navy: { paint: ['#1c2632', '#2a384a', '#3c4e66', '#546a86', '#7490ae'], trim: '#e0c040' },
+  arctic: { paint: ['#4e545c', '#6e767e', '#929aa0', '#b6bcc0', '#d8dcde'], trim: '#d84030' },
+  crimson: { paint: ['#361816', '#542420', '#76362c', '#96503e', '#b46a52'], trim: '#e8c050' },
+  black: { paint: ['#141416', '#202024', '#2e2e34', '#424248', '#5a5a62'], trim: '#d84a2a' },
+};
+export const SCHEMES = Object.keys(SCHEME);
+export const schemeColour = (k) => SCHEME[k]?.paint[3];
+const darker = (c, k) => '#' + [1, 3, 5].map((i) => Math.round(parseInt(c.slice(i, i + 2), 16) * k).toString(16).padStart(2, '0')).join('');
+function colours(u) {
+  const sc = SCHEME[u.paint] || (u.side === 'e' && u.boss ? { paint: SCHEME.black.paint, trim: '#d86a2a' } : null);
+  if (!sc) return COL[u.side];
+  return { paint: sc.paint, accent: sc.paint.map((c) => darker(c, 0.74)), trim: sc.trim };
+}
+// what each part looks like: bodies change the chest, the head and what is on the back; arms the pauldrons and
+// their size; legs the greaves
+const BODY = {
+  B1: { kw: 1, kh: 1, head: 'mono' },
+  B2: { kw: 1.1, kh: 1.04, head: 'twin', bulge: true },
+  B4: { kw: 0.93, kh: 0.96, head: 'v', wings: true },
+  B3: { kw: 1.2, kh: 1.12, head: 'visor', stacks: true },
+};
+const ARM = { A1: { k: 1, look: 'std' }, A2: { k: 1.06, look: 'round' }, A4: { k: 0.94, look: 'spike' }, A3: { k: 1.16, look: 'heavy' } };
+const LEG = { L1: { kx: 1, look: 'std' }, L2: { kx: 1.14, look: 'heavy' }, L4: { kx: 0.88, look: 'fin' } };
 const COL = {
   p: { paint: ['#2c3a20', '#40542a', '#5a7436', '#74904a', '#96b064'], accent: ['#222c18', '#303e22', '#42562c', '#566e38', '#6e884a'], trim: '#d8b44a' },
   e: { paint: ['#323134', '#4a494c', '#6a6764', '#8a8680', '#aaa69c'], accent: ['#262528', '#36353a', '#4c4a4c', '#625f5e', '#7c7874'], trim: '#d86a2a' },
@@ -61,7 +88,7 @@ function prism(wb, db, wt, dt, h, dz = 0, dx = 0) {
 function cylGeo(r1, r2, len, n = 8) { const key = `y${r1},${r2},${len},${n}`; if (!geoCache.has(key)) geoCache.set(key, new THREE.CylinderGeometry(r1, r2, len, n)); return geoCache.get(key); }
 
 export function buildMech(u) {
-  const C = COL[u.side], legs = ITEM[u.legs];
+  const C = colours(u), legs = ITEM[u.legs], BD = BODY[u.body] || BODY.B1;
   const T = (map, extra = {}) => new THREE.MeshToonMaterial({ map, gradientMap: TOON, transparent: true, ...extra });
   const mats = {
     paint: T(armourTex(C.paint, 1)), paint2: T(armourTex(C.paint, 2)), accent: T(armourTex(C.accent, 3)),
@@ -86,43 +113,72 @@ export function buildMech(u) {
   pr(hips, [0.24, 0.04, 0.28, 0.05, 0.12, -0.04], mats.accent, 0, -0.04, -0.14, 'body');
   for (const s of [-1, 1]) pr(hips, [0.05, 0.18, 0.04, 0.2, 0.16, 0, -s * 0.04], mats.paint2, s * 0.22, -0.05, 0, 'body');
   // ---- the chest: a broad wedge, wider at the shoulders, pushed forward at the top
-  const torso = pivot(hips, 0, 0.06, 0);
-  pr(torso, [0.46, 0.4, 0.74, 0.5, 0.4, 0.03], mats.paint, 0, 0.2, 0, 'body');
+  const torso = pivot(hips, 0, 0.06, 0), shell = pivot(torso, 0, 0, 0); shell.scale.set(BD.kw, BD.kh, 1 + (BD.kw - 1) * 0.5);
+  pr(shell, [0.46, 0.4, 0.74, 0.5, 0.4, 0.03], mats.paint, 0, 0.2, 0, 'body');
   // two chest plates meeting in a V
-  for (const s of [-1, 1]) pr(torso, [0.16, 0.05, 0.3, 0.05, 0.26, 0.02, s * 0.04], mats.paint2, s * 0.13, 0.22, 0.25, 'body', [-0.16, 0, s * 0.08]);
-  pr(torso, [0.5, 0.18, 0.6, 0.2, 0.08, 0.02], mats.accent, 0, 0.42, 0.08, 'body'); // the collar
+  for (const s of [-1, 1]) pr(shell, [0.16, 0.05, 0.3, 0.05, 0.26, 0.02, s * 0.04], mats.paint2, s * 0.13, 0.22, 0.25, 'body', [-0.16, 0, s * 0.08]);
+  pr(shell, [0.5, 0.18, 0.6, 0.2, 0.08, 0.02], mats.accent, 0, 0.42, 0.08, 'body'); // the collar
   // the cockpit: an angled visor band across the upper chest
-  pr(torso, [0.34, 0.05, 0.38, 0.05, 0.1, 0.02], mats.metalD, 0, 0.33, 0.27, 'body', [-0.3, 0, 0]);
-  pr(torso, [0.3, 0.02, 0.33, 0.02, 0.06], mats.glass, 0, 0.335, 0.3, 'body', [-0.3, 0, 0]);
-  blk(torso, 0.18, 0.01, 0.01, mats.lamp, -0.04, 0.355, 0.315, 'body');
-  for (const s of [-1, 1]) { blk(torso, 0.02, 0.14, 0.2, mats.grille, s * 0.3, 0.14, -0.02, 'body', [0, 0, s * -0.32]); pr(torso, [0.03, 0.3, 0.03, 0.42, 0.05], mats.trim, s * 0.35, 0.31, 0, 'body', [0, 0, s * -0.32]); }
-  rivets(torso, [[-0.2, 0.06, 0.21], [0.2, 0.06, 0.21], [-0.32, 0.38, 0.2], [0.32, 0.38, 0.2]], 'body');
+  pr(shell, [0.34, 0.05, 0.38, 0.05, 0.1, 0.02], mats.metalD, 0, 0.33, 0.27, 'body', [-0.3, 0, 0]);
+  pr(shell, [0.3, 0.02, 0.33, 0.02, 0.06], mats.glass, 0, 0.335, 0.3, 'body', [-0.3, 0, 0]);
+  blk(shell, 0.18, 0.01, 0.01, mats.lamp, -0.04, 0.355, 0.315, 'body');
+  for (const s of [-1, 1]) { blk(shell, 0.02, 0.14, 0.2, mats.grille, s * 0.3, 0.14, -0.02, 'body', [0, 0, s * -0.32]); pr(shell, [0.03, 0.3, 0.03, 0.42, 0.05], mats.trim, s * 0.35, 0.31, 0, 'body', [0, 0, s * -0.32]); }
+  rivets(shell, [[-0.2, 0.06, 0.21], [0.2, 0.06, 0.21], [-0.32, 0.38, 0.2], [0.32, 0.38, 0.2]], 'body');
   // the backpack: a generator, twin thrusters with a blue glow, fins
-  pr(torso, [0.36, 0.14, 0.42, 0.16, 0.32, -0.02], mats.metalD, 0, 0.24, -0.31, 'body');
-  for (let k = 0; k < 4; k++) blk(torso, 0.34, 0.015, 0.05, mats.metal, 0, 0.13 + k * 0.06, -0.4, 'body');
-  for (const s of [-1, 1]) { cyl(torso, 0.06, 0.16, mats.metal, s * 0.13, 0.1, -0.4, 'body', 'y', 8, 0.045); cyl(torso, 0.045, 0.02, mats.jet, s * 0.13, 0.015, -0.4, 'body', 'y', 8); pr(torso, [0.02, 0.2, 0.02, 0.08, 0.2, -0.05], mats.accent, s * 0.19, 0.48, -0.3, 'body'); }
-  // ---- the head: low and sleek, a sloped faceplate, a mono-eye that sweeps, a crest
-  const head = pivot(torso, 0, 0.46, -0.02);
-  pr(head, [0.2, 0.22, 0.15, 0.17, 0.12, -0.02], mats.paint, 0, 0.06, 0, 'body');
-  pr(head, [0.16, 0.04, 0.12, 0.03, 0.08, 0.03], mats.accent, 0, 0.05, 0.11, 'body', [-0.35, 0, 0]);
-  blk(head, 0.15, 0.025, 0.02, mats.ink, 0, 0.085, 0.112, 'body');
-  const eye = blk(head, 0.04, 0.022, 0.02, mats.eye, 0, 0.085, 0.12, 'body');
-  pr(head, [0.02, 0.18, 0.015, 0.06, 0.1, -0.06], mats.trim, 0, 0.16, -0.02, 'body'); // the crest
-  for (const s of [-1, 1]) cyl(head, 0.025, 0.04, mats.metal, s * 0.11, 0.06, 0.02, 'body', 'x');
-  cyl(head, 0.007, 0.22, mats.metal, -0.06, 0.24, -0.06, 'body', 'y', 4); blk(head, 0.025, 0.025, 0.025, mats.lamp, -0.06, 0.35, -0.06, 'body');
+  pr(shell, [0.36, 0.14, 0.42, 0.16, 0.32, -0.02], mats.metalD, 0, 0.24, -0.31, 'body');
+  for (let k = 0; k < 4; k++) blk(shell, 0.34, 0.015, 0.05, mats.metal, 0, 0.13 + k * 0.06, -0.4, 'body');
+  for (const s of [-1, 1]) { cyl(shell, 0.06, 0.16, mats.metal, s * 0.13, 0.1, -0.4, 'body', 'y', 8, 0.045); cyl(shell, 0.045, 0.02, mats.jet, s * 0.13, 0.015, -0.4, 'body', 'y', 8); pr(shell, [0.02, 0.2, 0.02, 0.08, 0.2, -0.05], mats.accent, s * 0.19, 0.48, -0.3, 'body'); }
+  // body extras
+  if (BD.bulge) { for (const s2 of [-1, 1]) { pr(shell, [0.08, 0.34, 0.1, 0.4, 0.3, 0, s2 * 0.03], mats.paint2, s2 * 0.32, 0.17, 0.02, 'body'); rivets(shell, [[s2 * 0.37, 0.24, 0.17], [s2 * 0.37, 0.1, 0.17]], 'body'); } blk(shell, 0.36, 0.1, 0.04, mats.accent, 0, 0.06, 0.24, 'body'); }
+  if (BD.wings) for (const s2 of [-1, 1]) { pr(shell, [0.02, 0.26, 0.02, 0.06, 0.42, -0.22, s2 * 0.18], mats.accent, s2 * 0.16, 0.5, -0.36, 'body', [0, 0, s2 * -0.35]); blk(shell, 0.015, 0.36, 0.015, mats.trim, s2 * 0.24, 0.52, -0.44, 'body', [-0.5, 0, s2 * -0.35]); }
+  if (BD.stacks) for (const s2 of [-1, 1]) { cyl(shell, 0.05, 0.34, mats.metalD, s2 * 0.12, 0.56, -0.34, 'body', 'y', 8); cyl(shell, 0.06, 0.04, mats.metal, s2 * 0.12, 0.74, -0.34, 'body', 'y', 8); blk(shell, 0.1, 0.02, 0.02, mats.trim, s2 * 0.12, 0.5, -0.29, 'body'); }
+  // ---- the head
+  const head = pivot(torso, 0, 0.46 * BD.kh, -0.02);
+  let eye, sweep = true;
+  if (BD.head === 'twin') { // a boxy helmet with two eyes and a chin vent
+    pr(head, [0.23, 0.22, 0.21, 0.2, 0.13], mats.paint, 0, 0.065, 0, 'body');
+    blk(head, 0.17, 0.035, 0.02, mats.ink, 0, 0.085, 0.112, 'body');
+    eye = blk(head, 0.035, 0.02, 0.02, mats.eye, -0.045, 0.085, 0.12, 'body'); blk(head, 0.035, 0.02, 0.02, mats.eye, 0.045, 0.085, 0.12, 'body');
+    blk(head, 0.1, 0.03, 0.02, mats.grille, 0, 0.03, 0.115, 'body'); blk(head, 0.25, 0.02, 0.23, mats.accent, 0, 0.135, 0, 'body');
+    for (const s2 of [-1, 1]) cyl(head, 0.008, 0.12, mats.metal, s2 * 0.1, 0.2, -0.05, 'body', 'y', 4);
+    sweep = false;
+  } else if (BD.head === 'v') { // a narrow pointed head under a V-shaped antenna
+    pr(head, [0.17, 0.22, 0.12, 0.14, 0.12, -0.03], mats.paint, 0, 0.06, 0, 'body');
+    pr(head, [0.1, 0.06, 0.03, 0.03, 0.08, 0.05], mats.accent, 0, 0.04, 0.12, 'body', [-0.5, 0, 0]);
+    blk(head, 0.13, 0.02, 0.02, mats.ink, 0, 0.09, 0.1, 'body'); eye = blk(head, 0.035, 0.018, 0.02, mats.eye, 0, 0.09, 0.108, 'body');
+    for (const s2 of [-1, 1]) pr(head, [0.025, 0.02, 0.01, 0.01, 0.2], mats.trim, s2 * 0.05, 0.19, 0.06, 'body', [0, 0, s2 * -0.6]);
+    blk(head, 0.03, 0.03, 0.03, mats.lamp, 0, 0.13, 0.08, 'body');
+  } else if (BD.head === 'visor') { // a wide, low helmet with one long visor and two horns
+    pr(head, [0.28, 0.24, 0.24, 0.2, 0.11], mats.paint, 0, 0.055, 0, 'body');
+    blk(head, 0.24, 0.03, 0.02, mats.ink, 0, 0.07, 0.122, 'body'); eye = blk(head, 0.05, 0.02, 0.02, mats.eye, 0, 0.07, 0.13, 'body');
+    for (const s2 of [-1, 1]) pr(head, [0.04, 0.05, 0.015, 0.02, 0.12, 0, s2 * 0.04], mats.trim, s2 * 0.1, 0.16, -0.02, 'body');
+    blk(head, 0.3, 0.02, 0.26, mats.accent, 0, 0.0, 0, 'body');
+  } else { // a low, sleek head, a sloped faceplate, a sweeping mono-eye, a crest
+    pr(head, [0.2, 0.22, 0.15, 0.17, 0.12, -0.02], mats.paint, 0, 0.06, 0, 'body');
+    pr(head, [0.16, 0.04, 0.12, 0.03, 0.08, 0.03], mats.accent, 0, 0.05, 0.11, 'body', [-0.35, 0, 0]);
+    blk(head, 0.15, 0.025, 0.02, mats.ink, 0, 0.085, 0.112, 'body');
+    eye = blk(head, 0.04, 0.022, 0.02, mats.eye, 0, 0.085, 0.12, 'body');
+    pr(head, [0.02, 0.18, 0.015, 0.06, 0.1, -0.06], mats.trim, 0, 0.16, -0.02, 'body'); // the crest
+    for (const s2 of [-1, 1]) cyl(head, 0.025, 0.04, mats.metal, s2 * 0.11, 0.06, 0.02, 'body', 'x');
+    cyl(head, 0.007, 0.22, mats.metal, -0.06, 0.24, -0.06, 'body', 'y', 4); blk(head, 0.025, 0.025, 0.025, mats.lamp, -0.06, 0.35, -0.06, 'body');
+  }
   // ---- a missile launcher on the shoulder
   if (u.sh) {
-    const L = pivot(torso, -0.24, 0.5, -0.12); parts.launcher = L;
+    const L = pivot(torso, -0.24 * BD.kw, 0.5 * BD.kh, -0.12); parts.launcher = L;
     pr(L, [0.26, 0.26, 0.24, 0.22, 0.2, 0.02], mats.metal, 0, 0.1, 0, 'body');
     const n = u.sh === 'RK1' ? 3 : 2; for (let k = 0; k < n; k++) for (let j = 0; j < 2; j++) cyl(L, 0.032, 0.02, mats.ink, -0.08 + k * (0.16 / Math.max(1, n - 1)), 0.06 + j * 0.08, 0.13, 'body', 'z', 6);
     blk(L, 0.22, 0.02, 0.02, mats.trim, 0, 0.19, 0.12, 'body'); blk(L, 0.05, 0.12, 0.05, mats.metalD, 0.08, -0.04, 0.02, 'body');
   }
   // ---- arms: angular pauldrons with forward fins, a joint, a bare upper arm, an elbow, a gauntlet, fingers
   const arm = (side, part, slot) => {
-    const sh = pivot(torso, side * 0.42, 0.33, 0);
+    const AR = ARM[u[part]] || ARM.A1;
+    const sh = pivot(torso, side * (0.42 * BD.kw + (AR.k - 1) * 0.2), 0.33 * BD.kh, 0); sh.scale.setScalar(AR.k);
     cyl(sh, 0.07, 0.1, mats.metalD, -side * 0.03, 0, 0, part, 'x');
-    pr(sh, [0.3, 0.42, 0.22, 0.34, 0.2, 0, side * 0.04], mats.paint, side * 0.06, 0.06, 0, part); // pauldron, sloping outwards
-    pr(sh, [0.04, 0.12, 0.02, 0.02, 0.16, 0.06], mats.paint2, side * 0.1, 0.2, 0.12, part, [0.5, 0, side * -0.3]); // the forward fin
+    if (AR.look === 'round') { cyl(sh, 0.19, 0.4, mats.paint, side * 0.06, 0.05, 0, part, 'z', 10); blk(sh, 0.04, 0.05, 0.42, mats.trim, side * 0.24, 0.05, 0, part); }
+    else pr(sh, [0.3, 0.42, 0.22, 0.34, 0.2, 0, side * 0.04], mats.paint, side * 0.06, 0.06, 0, part); // pauldron, sloping outwards
+    if (AR.look === 'spike') pr(sh, [0.05, 0.16, 0.01, 0.02, 0.32, 0.1], mats.trim, side * 0.1, 0.26, 0.06, part, [0.35, 0, side * -0.4]); // a long swept spike
+    else if (AR.look !== 'round') pr(sh, [0.04, 0.12, 0.02, 0.02, 0.16, 0.06], mats.paint2, side * 0.1, 0.2, 0.12, part, [0.5, 0, side * -0.3]); // the forward fin
+    if (AR.look === 'heavy') { pr(sh, [0.34, 0.44, 0.26, 0.36, 0.08, 0, side * 0.03], mats.accent, side * 0.07, 0.2, 0, part); rivets(sh, [[side * 0.2, 0.21, 0.1], [side * 0.2, 0.21, -0.1], [side * 0.2, 0.21, 0]], part); }
     pr(sh, [0.32, 0.4, 0.32, 0.4, 0.04], mats.accent, side * 0.06, -0.06, 0, part); // the rim beneath
     blk(sh, 0.02, 0.05, 0.32, mats.trim, side * 0.205, 0.07, 0, part, [0, 0, side * -0.2]);
     rivets(sh, [[side * 0.18, 0.1, 0.15], [side * 0.18, 0.1, -0.15]], part);
@@ -178,7 +234,8 @@ export function buildMech(u) {
     hips.position.y = 0.44;
   } else {
     const leg = (side) => {
-      const hip = pivot(group, side * 0.15, 0.42, 0);
+      const LG = LEG[u.legs] || LEG.L1;
+      const hip = pivot(group, side * 0.15 * LG.kx, 0.42, 0); hip.scale.x = LG.kx;
       cyl(hip, 0.06, 0.1, mats.metalD, 0, 0, 0, 'legs', 'x');
       cyl(hip, 0.055, 0.22, mats.metal, 0, -0.12, 0, 'legs');
       pr(hip, [0.08, 0.14, 0.06, 0.18, 0.22, 0, side * 0.02], mats.paint2, side * 0.06, -0.1, 0.01, 'legs'); // thigh armour
@@ -190,6 +247,8 @@ export function buildMech(u) {
       pr(knee, [0.16, 0.12, 0.06, 0.02, 0.16, 0.08], mats.accent, 0, 0.04, 0.13, 'legs', [0.2, 0, 0]); // the knee spike
       blk(knee, 0.26, 0.015, 0.29, mats.accent, 0, -0.06, 0.01, 'legs');
       rivets(knee, [[0.09, -0.08, 0.14], [-0.09, -0.08, 0.14]], 'legs');
+      if (LG.look === 'heavy') { pr(knee, [0.05, 0.22, 0.06, 0.26, 0.26], mats.accent, side * 0.15, -0.16, 0.01, 'legs'); blk(knee, 0.3, 0.04, 0.32, mats.paint2, 0, -0.29, 0.01, 'legs'); }
+      if (LG.look === 'fin') { pr(knee, [0.03, 0.18, 0.015, 0.04, 0.26, -0.14], mats.paint2, 0, -0.08, -0.16, 'legs', [0.6, 0, 0]); blk(knee, 0.015, 0.2, 0.015, mats.trim, 0, -0.14, 0.17, 'legs'); }
       const ank = pivot(knee, 0, -0.32, 0);
       cyl(ank, 0.045, 0.16, mats.metalD, 0, 0, 0, 'legs', 'x');
       pr(ank, [0.26, 0.3, 0.22, 0.26, 0.08], mats.metalD, 0, -0.04, 0.02, 'legs'); // the sole
@@ -207,7 +266,7 @@ export function buildMech(u) {
   const mark = new THREE.Sprite(new THREE.SpriteMaterial({ color: '#ffe14a', depthTest: false })); mark.scale.set(0.12, 0.16, 1); mark.position.y = 1.7; mark.visible = false; mark.renderOrder = 9; group.add(mark);
   let lastBar = -1, lastAlpha = -1;
   return {
-    group, hit, parts, mats, hips, torso, head, eye, armR, armL, legL, legR, legsType: legs, bar, star, mark,
+    group, hit, parts, mats, hips, torso, head, eye, sweep, armR, armL, legL, legR, legsType: legs, bar, star, mark,
     fade(a) { if (a === lastAlpha) return; lastAlpha = a; for (const k in mats) mats[k].opacity = a; },
     bars(u2, sel, t) {
       const k = Math.max(0, u2.hp.body) / u2.max.body, key = Math.round(k * 18);
@@ -219,7 +278,8 @@ export function buildMech(u) {
   };
 }
 
-// pose: { phase, walk, aim, recoil, muzzle, flinch, t }
+// pose: { phase, walk, aim, recoil, muzzle, flinch, t } and, in the battle scene, a fighting stance:
+// stance (0-1: one foot forward, knees bent), sway (-1..1: weight shifting), lean (+ forward), twist (shoulders), guard (0-1: arms up)
 export function poseMech(m, u, pose) {
   const w = pose.walk || 0, ph = pose.phase || 0, aim = pose.aim || 0, t = pose.t || 0;
   // broken parts go dark; a destroyed arm is gone
@@ -228,25 +288,37 @@ export function poseMech(m, u, pose) {
   // legs: the same stride as the sprites; the hips ride as high as the straighter leg
   const lame = u.hp.legs <= 0 ? 0.35 : 1;
   const leg = (p) => { const th = 0.55 * Math.sin(p) * w * lame, bend = 0.15 + 1.05 * w * lame * Math.max(0, Math.cos(p)); return { th, bend }; };
-  const breathe = Math.sin(t * 2.2) * 0.006 * (1 - w);
+  const breathe = Math.sin(t * 2.2) * 0.006 * (1 - w), st = (pose.stance || 0) * (w < 0.5 ? 1 : 0), sway = pose.sway || 0;
   if (m.legL) {
     const a = leg(ph + Math.PI), b = leg(ph), H = (l) => Math.cos(l.th) * 0.24 + Math.cos(l.th - l.bend) * 0.32 + 0.08;
-    const hipY = Math.max(H(a), H(b)) + 0.02 + breathe;
+    let hipY = Math.max(H(a), H(b)) + 0.02 + breathe;
+    if (st > 0) {
+      // standing to fight: the left foot forward, the right one back, both knees bent to the same lowered hip height,
+      // each shin solved so its foot stays flat on the ground
+      a.th += 0.3 * st + sway * 0.04; b.th -= 0.24 * st - sway * 0.04;
+      hipY = Math.min(Math.cos(a.th) * 0.24, Math.cos(b.th) * 0.24) + 0.32 * Math.cos(0.5 * st) + 0.08 + 0.02 + breathe * 2;
+      for (const l of [a, b]) l.bend = l.th + Math.acos(Math.max(-1, Math.min(1, (hipY - 0.02 - 0.08 - Math.cos(l.th) * 0.24) / 0.32)));
+    }
     for (const [L, l] of [[m.legL, a], [m.legR, b]]) { L.hip.position.y = hipY; L.hip.rotation.x = -l.th; L.knee.rotation.x = l.bend; L.ank.rotation.x = l.th - l.bend; }
     m.hips.position.y = hipY;
   } else if (m.legsType.hover) m.hips.position.y = 0.44 + Math.sin(t * 4) * 0.015;
-  m.torso.rotation.x = w * 0.08 + aim * 0.04;
+  m.hips.position.x = sway * 0.025 * st; m.hips.rotation.z = -sway * 0.03 * st;
+  m.torso.rotation.x = w * 0.08 + aim * 0.04 + st * 0.06 + (pose.lean || 0) - (pose.recoil || 0) * 0.03;
+  m.torso.rotation.y = pose.twist || 0; m.torso.rotation.z = sway * 0.05 * st;
   m.torso.position.x = (pose.flinch || 0) * 0.03;
+  m.head.rotation.y = (pose.look || 0) + Math.sin(t * 0.7) * 0.12 * st * (1 - aim);
   // arms swing against the legs; the right arm comes up to aim
   const sw = 0.45 * w;
   const restR = { s: -(0.1 + Math.sin(ph + Math.PI) * sw), e: -(0.6 + Math.sin(ph + Math.PI) * sw * 1.3) }, restL = { s: -(0.1 + Math.sin(ph) * sw), e: -(0.6 + Math.sin(ph) * sw * 1.3) };
   const aimS = -(Math.PI / 2) + (pose.recoil || 0) * 0.18;
-  m.armR.up.rotation.x = restR.s * (1 - aim) + aimS * aim; m.armR.el.rotation.x = restR.e * (1 - aim);
-  m.armL.up.rotation.x = restL.s; m.armL.el.rotation.x = restL.e;
+  // on guard the gun arm is half raised and the other arm comes up in front
+  const gd = Math.max(st * 0.35, pose.guard || 0), aR = Math.max(aim, gd * 0.55), gL = Math.max(st * 0.5, pose.guard || 0);
+  m.armR.up.rotation.x = restR.s * (1 - aR) + aimS * aR; m.armR.el.rotation.x = restR.e * (1 - aR);
+  m.armL.up.rotation.x = restL.s * (1 - gL) - 0.55 * gL + Math.sin(t * 1.9) * 0.03 * st; m.armL.el.rotation.x = restL.e * (1 - gL) - 1.2 * gL;
   if (pose.swing != null) { const A = pose.swingL ? m.armL : m.armR; A.up.rotation.x = pose.swing; A.el.rotation.x = -0.3; } // a melee blow, with whichever arm holds the weapon
   // the muzzle flash; the mono-eye sweeps from side to side
   const mz = m.parts.muzzlewR;
   if (mz) { if (!mz.flash) { mz.flash = new THREE.Mesh(prism(0.16, 0.16, 0.16, 0.16, 0.16), new THREE.MeshBasicMaterial({ color: '#ffd060' })); mz.add(mz.flash); } mz.flash.visible = !!pose.muzzle; mz.flash.rotation.set(t * 9, t * 7, 0); }
-  m.eye.position.x = Math.sin(t * 1.6) * 0.045;
+  if (m.sweep) m.eye.position.x = Math.sin(t * 1.6) * 0.045;
   m.mats.eye.color.set(Math.floor(t * 2) % 2 ? '#ff4a30' : '#ff7a50');
 }
