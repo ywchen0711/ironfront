@@ -34,7 +34,7 @@ function resize() {
   const r = $('#stage').getBoundingClientRect(), dpr = Math.min(2, window.devicePixelRatio || 1);
   VW = r.width; VH = r.height; cv.width = Math.round(VW * dpr); cv.height = Math.round(VH * dpr); cv.style.width = VW + 'px'; cv.style.height = VH + 'px';
   g.setTransform(dpr, 0, 0, dpr, 0, 0); g.imageSmoothingEnabled = false;
-  PX = VW >= 1000 ? 3 : 2;
+  PX = 2; // every pixel of the scene is 2 x 2 screen pixels: crisp, but fine enough to show the detail
   W3.resize(VW, VH, PX);
 }
 const screenToTile = (cx, cy) => W3.pick(cx, cy);
