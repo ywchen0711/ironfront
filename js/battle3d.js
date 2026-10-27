@@ -4,7 +4,7 @@
 import * as THREE from './lib/three.module.min.js';
 import { buildMech, poseMech } from './mech3d.js?v=15';
 import * as W3 from './world3d.js?v=15';
-import { P, hash } from './render.js?v=15';
+import { P, hash, flyOf } from './render.js?v=15';
 import { ITEM } from './data.js?v=15';
 
 const cam = { x: 0 };
@@ -19,32 +19,66 @@ function pixTex(w, h, paint) {
 }
 // the ground: one quiet colour with a few soft patches of a second, nothing more
 function groundTex(ch) {
-  const pal = ch === 'c' ? P.snow : ch === 'r' ? P.asph : ch === ',' || ch === 'x' ? P.conc : ch === 'f' ? P.forest : ch === 'h' || ch === 'H' ? P.dirt : P.grass;
+  const pal = ch === 'd' ? P.sand : ch === 'c' ? P.snow : ch === 'r' ? P.asph : ch === ',' || ch === 'x' ? P.conc : ch === 'f' ? P.forest : ch === 'h' || ch === 'H' ? P.dirt : P.grass;
   return pixTex(32, 32, (g, w, h) => {
     g.fillStyle = pal[0]; g.fillRect(0, 0, w, h); void hash;
   });
 }
+const SKY = {
+  clear: { sky: ['#4e6e96', '#5e7ea4', '#7090b2', '#86a2c0', '#a0b6cc', '#bccad4'], fog: '#b4c2ca', near: 12, far: 34, hemi: 1.45, sun: 2.7, col: '#fff4e0' },
+  dusk: { sky: ['#1e2430', '#262c36', '#30343c', '#3c3e42', '#4a4844', '#565246'], fog: '#565246', near: 9, far: 26, hemi: 1.25, sun: 2.6, col: '#ffe8c8' },
+  night: { sky: ['#05070c', '#080c14', '#0c111c', '#111724', '#171d2c', '#1e2434'], fog: '#1a2030', near: 7, far: 22, hemi: 0.75, sun: 1.3, col: '#a8b8e0', stars: true },
+  rain: { sky: ['#363c44', '#40464e', '#4a5058', '#545a62', '#5e646a', '#686e74'], fog: '#5e646a', near: 6, far: 20, hemi: 1.1, sun: 1.4, col: '#d8dce0' },
+  fog: { sky: ['#6e7274', '#767a7c', '#7e8284', '#868a8c', '#8e9292', '#969a9a'], fog: '#909494', near: 3.5, far: 12, hemi: 1.3, sun: 1.2, col: '#e8e8e4' },
+  snow: { sky: ['#848c96', '#929aa2', '#a0a8ae', '#aeb4ba', '#bcc2c6', '#cacfd2'], fog: '#c4c8cc', near: 6, far: 22, hemi: 1.5, sun: 1.8, col: '#f4f6f8' },
+  sand: { sky: ['#84643c', '#947244', '#a4804e', '#b48e58', '#c29c64', '#cea870'], fog: '#c2a06a', near: 5, far: 18, hemi: 1.3, sun: 2.2, col: '#ffe0b0' },
+};
+const shadeHex = (c, k) => '#' + [1, 3, 5].map((i) => Math.max(0, Math.min(255, Math.round(parseInt(c.slice(i, i + 2), 16) * k))).toString(16).padStart(2, '0')).join('');
+let hemi = null, far = null, skyKey = '';
 function init() {
   scn = new THREE.Scene();
-  // a plain dusk sky, in a few bands, fading into haze at the horizon
-  const sky = ['#1e2430', '#262c36', '#30343c', '#3c3e42', '#4a4844', '#565246'];
-  scn.background = pixTex(1, 96, (g, w, h) => { for (let y = 0; y < h; y++) { const k = y / h * sky.length, i = Math.floor(k), f = k - i; g.fillStyle = sky[Math.min(sky.length - 1, i + (f > 0.8 && y % 2 ? 1 : 0))]; g.fillRect(0, y, 1, 1); } });
-  scn.fog = new THREE.Fog('#565246', 9, 26);
-  // a faint line of hills far behind, barely darker than the haze
-  const hills = pixTex(128, 16, (g, w, h) => { for (let x = 0; x < w; x++) { const top = 8 + Math.round(Math.sin(x * 0.07) * 3 + Math.sin(x * 0.17 + 1) * 1.5); g.fillStyle = '#3e3c3a'; g.fillRect(x, top, 1, h - top); } });
-  const far = new THREE.Mesh(new THREE.PlaneGeometry(60, 7.5), new THREE.MeshBasicMaterial({ map: hills, transparent: true, fog: false, depthWrite: false }));
-  far.position.set(0, 1.2, -22); scn.add(far);
-  scn.add(new THREE.HemisphereLight('#c8ccd4', '#3a342a', 1.25));
+  hemi = new THREE.HemisphereLight('#c8ccd4', '#3a342a', 1.25); scn.add(hemi);
   sun = new THREE.DirectionalLight('#ffe8c8', 2.6); sun.position.set(-2.2, 4.2, 3.4); sun.castShadow = true;
   sun.shadow.mapSize.set(2048, 2048); sun.shadow.bias = -0.0008; sun.shadow.normalBias = 0.012;
   Object.assign(sun.shadow.camera, { left: -3, right: 3, top: 3, bottom: -3, near: 0.5, far: 12 }); sun.shadow.camera.updateProjectionMatrix();
   scn.add(sun);
   cmr = new THREE.PerspectiveCamera(28, 16 / 9, 1, 60);
 }
+// the far scenery: a line of hills, a city's skyline, a forest, dunes, mountains, or the sea's flat edge
+function farTex(theme, col) {
+  return pixTex(160, 24, (g, w, h) => {
+    g.fillStyle = col;
+    for (let x = 0; x < w; x++) {
+      let top;
+      if (theme === 'city') { const b = x >> 3; top = 6 + Math.round(hash(b, 1, 4) * 12) * (hash(b, 2, 4) > 0.25 ? 1 : 0.4); }
+      else if (theme === 'forest') top = 12 - Math.round(Math.abs(((x % 7) - 3)) * -1.4 + 4 + hash(x >> 3, 3, 5) * 3);
+      else if (theme === 'desert') top = 16 + Math.round(Math.sin(x * 0.05) * 2 + Math.sin(x * 0.11 + 2) * 1.2);
+      else if (theme === 'snow' || theme === 'mountain') top = 4 + Math.round(Math.abs(Math.sin(x * 0.045)) * 8 + Math.abs(Math.sin(x * 0.12 + 1)) * 5);
+      else if (theme === 'sea') top = 19;
+      else top = 10 + Math.round(Math.sin(x * 0.07) * 3 + Math.sin(x * 0.17 + 1) * 1.5);
+      top = Math.max(1, Math.min(h - 1, top));
+      g.fillRect(x, top, 1, h - top);
+      if ((theme === 'snow' || theme === 'mountain') && top < 9) { g.fillStyle = '#e8ecee'; g.fillRect(x, top, 1, 2); g.fillStyle = col; }
+    }
+    if (theme === 'city') { g.fillStyle = shadeHex(col, 1.6); for (let j = 0; j < 40; j++) g.fillRect(Math.floor(hash(j, 5, 6) * w), 10 + Math.floor(hash(j, 6, 6) * 12), 1, 1); }
+  });
+}
+function setSky(weather, theme) {
+  const key = weather + theme; if (key === skyKey) return; skyKey = key;
+  const S = SKY[weather] || SKY.dusk, sky = S.sky;
+  scn.background = pixTex(1, 96, (g, w, h) => { for (let y = 0; y < h; y++) { const k = y / h * sky.length, i = Math.floor(k), f = k - i; g.fillStyle = sky[Math.min(sky.length - 1, i + (f > 0.8 && y % 2 ? 1 : 0))]; g.fillRect(0, y, 1, 1); } });
+  if (S.stars) { const st = pixTex(256, 64, (g, w, h) => { for (let j = 0; j < 90; j++) { g.fillStyle = hash(j, 2, 3) > 0.7 ? '#e8ecff' : '#8890a8'; g.fillRect(Math.floor(hash(j, 0, 3) * w), Math.floor(hash(j, 1, 3) * h * 0.8), 1, 1); } }); scn.background = st; scn.background.repeat.set(1, 1); scn.userData.night = true; }
+  scn.fog = new THREE.Fog(S.fog, S.near, S.far);
+  hemi.intensity = S.hemi; sun.intensity = S.sun; sun.color.set(S.col);
+  if (far) scn.remove(far);
+  far = new THREE.Mesh(new THREE.PlaneGeometry(64, 9.6), new THREE.MeshBasicMaterial({ map: farTex(theme, shadeHex(S.fog, 0.72)), transparent: true, fog: false, depthWrite: false }));
+  far.position.set(0, 1.4, -22); scn.add(far);
+}
 
 // a new fight: build the two machines once and keep them until the next one
 export function start(sc) {
   if (!scn) init();
+  setSky(sc.weather || 'dusk', sc.theme || 'hills');
   if (groundKey !== sc.ground) {
     groundKey = sc.ground; if (groundMesh) scn.remove(groundMesh);
     const t = groundTex(sc.ground); t.repeat.set(14, 14);
@@ -80,7 +114,7 @@ function choreograph(sc) {
     if (!v || v.from !== e.from) { v = { from: e.from, cat: e.cat, t0: e.at, t1: e.at, n: plan.volleys.length }; plan.volleys.push(v); const r = R(10, v.n);
       v.mode = e.cat === 'short' ? ['stand', 'crouch', 'advance', 'strafe', 'brace'][Math.floor(r * 5)] : e.cat === 'long' ? ['stand', 'brace', 'back'][Math.floor(r * 3)] : 'melee';
       v.dir = R(11, v.n) > 0.5 ? 1 : -1; }
-    v.t1 = e.at; e.style = STYLES[Math.floor(R(12, e.n) * STYLES.length)]; e.approach = ['run', 'dash', 'leap'][Math.floor(R(13, e.n) * 3)];
+    v.t1 = e.at; if (v.lead == null) v.lead = 0.6 + flyOf(e); e.style = STYLES[Math.floor(R(12, e.n) * STYLES.length)]; e.approach = ['run', 'dash', 'leap'][Math.floor(R(13, e.n) * 3)];
   }
   sc.plan = plan;
 }
@@ -103,9 +137,9 @@ export function render(sc) {
     else if (plan.enter === 'dash') { x -= f * 1.6 * left ** 3; crouch += 0.3 * left; }
     else guard = Math.max(guard, 0.6 * left);
     // my volley, if one is under way
-    const V = plan.volleys.find((v) => v.from === s && t > v.t0 - 0.75 && t < v.t1 + 0.4);
+    const V = plan.volleys.find((v) => v.from === s && t > v.t0 - v.lead && t < v.t1 + 0.4);
     if (V) {
-      const q = clamp01((t - (V.t0 - 0.75)) / (V.t1 - V.t0 + 1.15)), env = Math.sin(q * Math.PI);
+      const q = clamp01((t - (V.t0 - V.lead)) / (V.t1 - V.t0 + V.lead + 0.4)), env = Math.sin(q * Math.PI);
       if (V.cat === 'short') {
         aim = 1;
         if (V.mode === 'crouch') crouch += 0.75 * env;
@@ -122,8 +156,9 @@ export function render(sc) {
       if (e.from !== s) continue;
       const dt = t - e.at;
       // each shot: a flash and the gun kicks up
-      if (e.cat === 'short' && dt > -0.16 && dt < -0.08) { muzzle = true; recoil = 1; }
-      if (e.cat === 'long') { const k = imp(dt + 0.55, 0.05, 5); lean -= 0.16 * k; push -= 0.05 * k; }
+      const fl = flyOf(e);
+      if (e.cat === 'short' && (e.fx === 'flame' ? dt > -fl && dt < 0 : dt > -fl - 0.02 && dt < -fl + 0.06)) { muzzle = true; recoil = e.fx === 'flame' ? 0.3 : 1; }
+      if (e.cat === 'long' || e.fx === 'shell') { const k = imp(dt + fl, 0.05, 5); lean -= (e.fx === 'artillery' ? 0.22 : 0.16) * k; push -= 0.05 * k; }
       // a blow, in five beats: close in, wind up and hold, strike, hold the follow-through, step back
       if (e.cat === 'melee' && dt > -0.9 && dt < 0.75) {
         const reach = 2 * GAP - 1.0, sm = (v) => v * v * (3 - 2 * v);
@@ -174,9 +209,12 @@ export function render(sc) {
     }
     const dying = sc.dead?.[s] && t > sc.deadAt ? Math.min(1, (t - sc.deadAt) / 0.9) : 0;
     const hits = theirs.filter((e) => !e.miss && t >= e.at && t < e.at + 0.25);
-    m.holder.position.set(x - f * push, -dying * 0.25 + (m.jump || 0), z);
-    m.holder.rotation.y = f * (Math.PI / 2 - 0.32) + (m.spin || 0); m.jump = 0; m.spin = 0;
-    m.group.rotation.x = -dying * dying * 1.1; // a destroyed machine topples backwards
+    // a helicopter hovers (and spins down when it is shot down); a vehicle sinks and tilts; a wanzer topples backwards
+    const hy = m.air ? 1.05 + Math.sin(t * 1.7 + f) * 0.05 - dying * 1.0 : 0;
+    m.holder.position.set(x - f * push, -dying * (m.vehicle ? 0.12 : 0.25) + (m.jump || 0) + hy, z);
+    m.holder.rotation.y = f * (Math.PI / 2 - 0.32) + (m.spin || 0) + (m.air ? dying * dying * 5 : 0); m.jump = 0; m.spin = 0;
+    m.group.rotation.x = m.air ? dying * 0.5 : m.vehicle ? -dying * 0.12 : -dying * dying * 1.1;
+    m.group.rotation.z = m.vehicle && !m.air ? dying * 0.1 * f : 0;
     const sway = Math.sin(t * 1.25 * P.sw + P.ph);
     poseMech(m, { ...u, hp: sc['hp' + s] }, {
       t, walk, phase, aim, muzzle, recoil, flinch: 0, swing, swingL: ITEM[u.wR]?.cat !== 'melee' && ITEM[u.wL]?.cat === 'melee',
@@ -214,7 +252,7 @@ export function render(sc) {
       muzzle: m.parts.muzzlewR ? proj(m.parts.muzzlewR) : proj(m.armR.el, 0, -0.3, 0),
       launcher: m.parts.launcher ? proj(m.parts.launcher, 0, 0.12, 0.14) : proj(m.torso, 0, 0.5, 0),
       body: proj(m.torso, 0, 0.22, 0.25), armL: proj(m.armL.el, 0, -0.14, 0), armR: proj(m.armR.el, 0, -0.14, 0),
-      legs: m.legL ? proj(m.legL.knee, 0, -0.1, 0.1) : proj(m.group, 0, 0.2, 0.3),
+      legs: m.legL ? proj(m.legL.knee, 0, -0.1, 0.1) : m.rotor ? proj(m.rotor) : proj(m.group, 0, 0.15, 0.3),
       miss: proj(m.torso, 0, 0.75, -0.9), head: proj(m.head, 0, 0.3, 0), ground: proj(m.holder),
     };
   }

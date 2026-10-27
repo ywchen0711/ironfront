@@ -8,6 +8,7 @@ import * as THREE from './lib/three.module.min.js';
 import { ITEM } from './data.js?v=15';
 import { TOON } from './world3d.js?v=15';
 import { hash } from './render.js?v=15';
+import { buildVehicle, poseVehicle } from './vehicle3d.js?v=15';
 
 // paint schemes the player can pick in the hangar; accents are the same colours a shade darker
 const SCHEME = {
@@ -95,16 +96,17 @@ function decalTex(u, col) {
 // ---------------------------------------------------------------- shapes
 const geoCache = new Map();
 // a tapered block: bottom wb x db, top wt x dt, h tall; the top can lean forward (dz) or sideways (dx)
-function prism(wb, db, wt, dt, h, dz = 0, dx = 0) {
+export function prism(wb, db, wt, dt, h, dz = 0, dx = 0) {
   const key = `p${wb},${db},${wt},${dt},${h},${dz},${dx}`; if (geoCache.has(key)) return geoCache.get(key);
   const g = new THREE.BoxGeometry(1, 1, 1), p = g.attributes.position;
   for (let i = 0; i < p.count; i++) { const top = p.getY(i) > 0; p.setXYZ(i, p.getX(i) * (top ? wt : wb) + (top ? dx : 0), p.getY(i) * h, p.getZ(i) * (top ? dt : db) + (top ? dz : 0)); }
   g.computeVertexNormals(); geoCache.set(key, g); return g;
 }
-function cylGeo(r1, r2, len, n = 8) { const key = `y${r1},${r2},${len},${n}`; if (!geoCache.has(key)) geoCache.set(key, new THREE.CylinderGeometry(r1, r2, len, n)); return geoCache.get(key); }
+export function cylGeo(r1, r2, len, n = 8) { const key = `y${r1},${r2},${len},${n}`; if (!geoCache.has(key)) geoCache.set(key, new THREE.CylinderGeometry(r1, r2, len, n)); return geoCache.get(key); }
 
-export function buildMech(u) {
-  const C = colours(u), legs = ITEM[u.legs], BD = BODY[u.body] || BODY.B1;
+// the materials and little builders every machine is made with (the vehicles too, in vehicle3d.js)
+export function kit(u) {
+  const C = colours(u);
   const T = (map, extra = {}) => new THREE.MeshToonMaterial({ map, gradientMap: TOON, ...extra });
   const mats = {
     paint: T(armourTex(C.paint, 1)), paint2: T(armourTex(C.paint, 2)), accent: T(armourTex(C.accent, 3)),
@@ -122,6 +124,14 @@ export function buildMech(u) {
   const cyl = (p, r, len, mat, x, y, z, part, axis = 'y', n = 8, r2 = r) => put(p, cylGeo(r, r2, len, n), mat, x, y, z, part, axis === 'x' ? [0, 0, Math.PI / 2] : axis === 'z' ? [Math.PI / 2, 0, 0] : null);
   const rivets = (p, pts, part) => { for (const [x, y, z] of pts) blk(p, 0.02, 0.02, 0.02, mats.metal, x, y, z, part); };
   const pivot = (parent, x, y, z) => { const g = new THREE.Group(); g.position.set(x, y, z); parent.add(g); return g; };
+  return { u, C, mats, group, hit, parts, put, pr, blk, cyl, rivets, pivot };
+}
+
+export function buildMech(u) {
+  const K = kit(u);
+  if (ITEM[u.body]?.cls && ITEM[u.body].cls !== 'wanzer') return buildVehicle(u, K);
+  const { mats, group, parts, put, pr, blk, cyl, rivets, pivot } = K;
+  const legs = ITEM[u.legs], BD = BODY[ITEM[u.body]?.look || u.body] || BODY.B1;
 
   // ---- the waist: narrow, with a skirt of plates
   const hips = pivot(group, 0, 0.42, 0);
@@ -187,12 +197,18 @@ export function buildMech(u) {
   if (u.sh) {
     const L = pivot(torso, -0.24 * BD.kw, 0.5 * BD.kh, -0.12); parts.launcher = L;
     pr(L, [0.26, 0.26, 0.24, 0.22, 0.2, 0.02], mats.metal, 0, 0.1, 0, 'body');
-    const n = u.sh === 'RK1' ? 3 : 2; for (let k = 0; k < n; k++) for (let j = 0; j < 2; j++) cyl(L, 0.032, 0.02, mats.ink, -0.08 + k * (0.16 / Math.max(1, n - 1)), 0.06 + j * 0.08, 0.13, 'body', 'z', 6);
+    const fam = ITEM[u.sh]?.fam || 'missile';
+    if (fam === 'mortar') { cyl(L, 0.06, 0.42, mats.metalD, 0, 0.3, 0.06, 'body', 'y', 8); cyl(L, 0.075, 0.05, mats.metal, 0, 0.5, 0.06, 'body', 'y', 8); }
+    else if (fam === 'aamissile') for (const x of [-0.07, 0.07]) { cyl(L, 0.03, 0.34, mats.paint2, x, 0.22, 0.04, 'body', 'z', 6); blk(L, 0.03, 0.03, 0.03, mats.lamp, x, 0.22, 0.22, 'body'); }
+    else {
+      const [nx, ny, r] = fam === 'cluster' ? [4, 3, 0.022] : fam === 'rocket' ? [3, 2, 0.032] : fam === 'hmissile' ? [2, 1, 0.06] : [2, 2, 0.034];
+      for (let k = 0; k < nx; k++) for (let j = 0; j < ny; j++) cyl(L, r, 0.02, mats.ink, nx > 1 ? -0.08 + k * (0.16 / (nx - 1)) : 0, ny > 1 ? 0.04 + j * (0.12 / (ny - 1)) : 0.1, 0.13, 'body', 'z', 6);
+    }
     blk(L, 0.22, 0.02, 0.02, mats.trim, 0, 0.19, 0.12, 'body'); blk(L, 0.05, 0.12, 0.05, mats.metalD, 0.08, -0.04, 0.02, 'body');
   }
   // ---- arms: angular pauldrons with forward fins, a joint, a bare upper arm, an elbow, a gauntlet, fingers
   const arm = (side, part, slot) => {
-    const AR = ARM[u[part]] || ARM.A1;
+    const AR = ARM[ITEM[u[part]]?.look || u[part]] || ARM.A1;
     const sh = pivot(torso, side * (0.42 * BD.kw + (AR.k - 1) * 0.2), 0.33 * BD.kh, 0); sh.scale.setScalar(AR.k);
     cyl(sh, 0.07, 0.1, mats.metalD, -side * 0.03, 0, 0, part, 'x');
     if (AR.look === 'round') { cyl(sh, 0.19, 0.4, mats.paint, side * 0.06, 0.05, 0, part, 'z', 10); blk(sh, 0.04, 0.05, 0.42, mats.trim, side * 0.24, 0.05, 0, part); }
@@ -219,20 +235,36 @@ export function buildMech(u) {
     const w = u[slot] && ITEM[u[slot]];
     if (w) {
       const hand = pivot(el, 0, -0.3, 0);
-      if (w.cat === 'shield') { pr(hand, [0.05, 0.34, 0.05, 0.26, 0.52], mats.metalD, side * 0.12, 0.1, 0.02, part); blk(hand, 0.01, 0.42, 0.04, mats.trim, side * 0.15, 0.1, 0.1, part); rivets(hand, [[side * 0.15, 0.32, -0.1], [side * 0.15, -0.12, -0.1], [side * 0.15, 0.32, 0.12]], part); }
+      const fam = w.fam || 'mg';
+      let len = 0.3;
+      if (w.cat === 'shield') { const k = fam === 'shieldH' ? 1.15 : 1; pr(hand, [0.05, 0.34 * k, 0.05, 0.26 * k, 0.52 * k], mats.metalD, side * 0.12, 0.1, 0.02, part); blk(hand, 0.01, 0.42 * k, 0.04, mats.trim, side * 0.15, 0.1, 0.1, part); rivets(hand, [[side * 0.15, 0.32, -0.1], [side * 0.15, -0.12, -0.1], [side * 0.15, 0.32, 0.12]], part); }
       else if (w.cat === 'melee') {
-        if (w.id === 'KN1') { pr(hand, [0.17, 0.17, 0.15, 0.15, 0.12], mats.metal, 0, -0.06, 0, part); for (let k = -1; k <= 1; k++) pr(hand, [0.03, 0.04, 0.01, 0.01, 0.06], mats.metalD, k * 0.05, -0.12, 0.06, part, [Math.PI, 0, 0]); }
-        else { cyl(hand, 0.025, 0.56, mats.metal, 0, 0, 0.2, part, 'z', 6); if (w.id === 'AX1') { pr(hand, [0.03, 0.08, 0.03, 0.2, 0.22], mats.metal, 0, 0.08, 0.43, part); blk(hand, 0.042, 0.228, 0.02, mats.lamp, 0, 0.08, 0.535, part); } if (w.id === 'RD1') cyl(hand, 0.04, 0.14, mats.jet, 0, 0, 0.47, part, 'z', 6); }
+        if (fam === 'knuckle') { pr(hand, [0.17, 0.17, 0.15, 0.15, 0.12], mats.metal, 0, -0.06, 0, part); for (let k = -1; k <= 1; k++) pr(hand, [0.03, 0.04, 0.01, 0.01, 0.06], mats.metalD, k * 0.05, -0.12, 0.06, part, [Math.PI, 0, 0]); }
+        else if (fam === 'pile') { blk(hand, 0.1, 0.1, 0.42, mats.metalD, 0, -0.02, 0.14, part); blk(hand, 0.11, 0.03, 0.2, mats.trim, 0, 0.04, 0.1, part); cyl(hand, 0.03, 0.3, mats.metal, 0, -0.02, 0.48, part, 'z', 6); cyl(hand, 0.012, 0.06, mats.metal, 0, -0.02, 0.66, part, 'z', 4, 0.03); }
+        else if (fam === 'blade') { cyl(hand, 0.022, 0.18, mats.metalD, 0, 0, 0.06, part, 'z', 6); blk(hand, 0.06, 0.03, 0.04, mats.trim, 0, 0, 0.16, part); pr(hand, [0.015, 0.07, 0.008, 0.04, 0.5], mats.metal, 0, 0, 0.42, part, [Math.PI / 2, 0, 0]); blk(hand, 0.018, 0.012, 0.46, mats.edge, 0, 0.034, 0.42, part); }
+        else {
+          cyl(hand, 0.025, 0.56, mats.metal, 0, 0, 0.2, part, 'z', 6);
+          if (fam === 'axe') { pr(hand, [0.03, 0.08, 0.03, 0.2, 0.22], mats.metal, 0, 0.08, 0.43, part); blk(hand, 0.042, 0.228, 0.02, mats.lamp, 0, 0.08, 0.535, part); }
+          else if (fam === 'hammer') { blk(hand, 0.13, 0.14, 0.22, mats.metalD, 0, 0, 0.47, part); blk(hand, 0.14, 0.03, 0.02, mats.trim, 0, 0.04, 0.47, part); }
+          else cyl(hand, 0.04, 0.14, mats.jet, 0, 0, 0.47, part, 'z', 6); // shock rod
+        }
       } else {
-        const len = { MG1: 0.42, MG2: 0.46, SG1: 0.32, RF1: 0.52, RF2: 0.66 }[w.id] || 0.42, th = w.id === 'SG1' || w.id === 'MG2' ? 0.035 : 0.025;
+        // guns: a grip and body in the hand, the barrel along the forearm, and what marks each kind
+        const G = { mg: [0.42, 0.025], smg: [0.26, 0.022], hmg: [0.46, 0.035], rifle: [0.52, 0.025], sniper: [0.66, 0.025], amr: [0.72, 0.035], rail: [0.6, 0.02], shotgun: [0.32, 0.035], bazooka: [0.5, 0.055], grenade: [0.28, 0.045], flamer: [0.3, 0.03] }[fam] || [0.42, 0.025];
+        len = G[0]; const th = G[1];
         pr(hand, [0.09, 0.13, 0.08, 0.1, 0.22], mats.metalD, 0, -0.06, 0, part);
-        cyl(hand, th, len, mats.metal, 0, -0.08 - len / 2, 0.02, part, 'y', 6);
-        cyl(hand, th * 1.7, 0.06, mats.metalD, 0, -0.08 - len + 0.03, 0.02, part, 'y', 6);
-        if (w.id === 'MG1' || w.id === 'MG2') cyl(hand, 0.07, 0.05, mats.metalD, 0.06, -0.05, 0.05, part, 'x', 8); else blk(hand, 0.05, 0.08, 0.1, mats.metalD, 0, -0.04, 0.1, part);
-        if (w.id === 'RF2' || w.id === 'RF1') { cyl(hand, 0.022, 0.14, mats.metal, 0, -0.107, -0.063, part, 'y', 8); blk(hand, 0.02, 0.02, 0.02, mats.glass, 0, -0.17, -0.06, part); }
-        if (w.id === 'SG1') blk(hand, 0.06, 0.08, 0.06, mats.accent, 0, -0.2, 0.05, part);
+        cyl(hand, th, len, fam === 'bazooka' ? mats.paint2 : mats.metal, 0, -0.08 - len / 2, 0.02, part, 'y', fam === 'bazooka' ? 10 : 6);
+        cyl(hand, th * (fam === 'bazooka' ? 1.25 : 1.7), 0.06, mats.metalD, 0, -0.08 - len + 0.03, 0.02, part, 'y', 8);
+        if (fam === 'mg' || fam === 'hmg') cyl(hand, 0.07, 0.05, mats.metalD, 0.06, -0.05, 0.05, part, 'x', 8);
+        else if (fam === 'grenade') cyl(hand, 0.08, 0.08, mats.metalD, 0, -0.1, 0.07, part, 'y', 8);
+        else if (fam === 'flamer') { cyl(hand, 0.05, 0.2, mats.trim, -side * 0.08, -0.12, -0.02, part, 'y', 8); blk(hand, 0.02, 0.02, 0.02, mats.lamp, 0, -0.08 - len, 0.06, part); }
+        else if (fam === 'rail') { for (const x of [-0.03, 0.03]) blk(hand, 0.012, len, 0.03, mats.metalD, x, -0.08 - len / 2, 0.02, part); blk(hand, 0.03, len * 0.6, 0.012, mats.jet, 0, -0.08 - len * 0.45, 0.045, part); }
+        else if (fam !== 'bazooka') blk(hand, 0.05, 0.08, 0.1, mats.metalD, 0, -0.04, 0.1, part);
+        if (['rifle', 'sniper', 'amr'].includes(fam)) { cyl(hand, 0.022, 0.14, mats.metal, 0, -0.107, -0.063, part, 'y', 8); blk(hand, 0.02, 0.02, 0.02, mats.glass, 0, -0.17, -0.06, part); }
+        if (fam === 'shotgun') blk(hand, 0.06, 0.08, 0.06, mats.accent, 0, -0.2, 0.05, part);
+        if (fam === 'hmg') blk(hand, 0.012, 0.12, 0.14, mats.paint2, 0, -0.16, 0.1, part);
       }
-      parts['muzzle' + slot] = pivot(hand, 0, -0.12 - ({ MG1: 0.42, MG2: 0.46, SG1: 0.32, RF1: 0.52, RF2: 0.66 }[w.id] || 0.42), 0.02);
+      parts['muzzle' + slot] = pivot(hand, 0, -0.12 - len, 0.02);
       parts['hand' + slot] = hand;
     }
     return { sh, up, el, part };
@@ -258,7 +290,7 @@ export function buildMech(u) {
     hips.position.y = 0.44;
   } else {
     const leg = (side) => {
-      const LG = LEG[u.legs] || LEG.L1;
+      const LG = LEG[ITEM[u.legs]?.look || u.legs] || LEG.L1;
       const hip = pivot(group, side * 0.15 * LG.kx, 0.42, 0); hip.scale.x = LG.kx;
       cyl(hip, 0.06, 0.1, mats.metalD, 0, 0, 0, 'legs', 'x');
       cyl(hip, 0.055, 0.22, mats.metal, 0, -0.12, 0, 'legs');
@@ -284,26 +316,31 @@ export function buildMech(u) {
     };
     legL = leg(-1); legR = leg(1);
   }
-  // ---- a health bar, a commander's star, a marker over the selected machine
+  return finish(K, { hips, torso, head, eye, sweep, armR, armL, legL, legR, legsType: legs });
+}
+
+// ---- the end of every build: the depth fix, a health bar, a commander's star, a marker over the selected machine
+export function finish(K, extra) {
+  const { u, mats, group, hit, parts } = K, top = extra.top ?? 1.4;
   // many small parts sit flush on bigger ones; two faces in the same plane flicker as the GPU flips between them.
   // Push every part's faces out by a hair, a little more for each part added after it, smaller parts more (details
   // are smaller than what they sit on), so the detail always wins.
   hit.forEach((mesh, i) => { const g = mesh.geometry; if (!g.boundingBox) g.computeBoundingBox(); const sz = g.boundingBox.getSize(new THREE.Vector3()), big = Math.max(sz.x, sz.y, sz.z), e = 0.001 + 0.007 * (1 - Math.min(1, big / 0.7)) + i * 0.00004; mesh.scale.set(1 + e / Math.max(0.01, sz.x), 1 + e / Math.max(0.01, sz.y), 1 + e / Math.max(0.01, sz.z)); });
   const barC = document.createElement('canvas'); barC.width = 20; barC.height = 5;
   const barT = new THREE.CanvasTexture(barC); barT.magFilter = barT.minFilter = THREE.NearestFilter; barT.generateMipmaps = false;
-  const bar = new THREE.Sprite(new THREE.SpriteMaterial({ map: barT, depthTest: false })); bar.scale.set(0.5, 0.125, 1); bar.position.y = 1.4; bar.renderOrder = 9; group.add(bar);
-  const star = new THREE.Sprite(new THREE.SpriteMaterial({ color: '#ffd23a', depthTest: false })); star.scale.set(0.12, 0.12, 1); star.position.y = 1.56; star.visible = !!u.boss; star.renderOrder = 9; group.add(star);
-  const mark = new THREE.Sprite(new THREE.SpriteMaterial({ color: '#ffe14a', depthTest: false })); mark.scale.set(0.12, 0.16, 1); mark.position.y = 1.7; mark.visible = false; mark.renderOrder = 9; group.add(mark);
+  const bar = new THREE.Sprite(new THREE.SpriteMaterial({ map: barT, depthTest: false })); bar.scale.set(0.5, 0.125, 1); bar.position.y = top; bar.renderOrder = 9; group.add(bar);
+  const star = new THREE.Sprite(new THREE.SpriteMaterial({ color: '#ffd23a', depthTest: false })); star.scale.set(0.12, 0.12, 1); star.position.y = top + 0.16; star.visible = !!u.boss; star.renderOrder = 9; group.add(star);
+  const mark = new THREE.Sprite(new THREE.SpriteMaterial({ color: '#ffe14a', depthTest: false })); mark.scale.set(0.12, 0.16, 1); mark.position.y = top + 0.3; mark.visible = false; mark.renderOrder = 9; group.add(mark);
   let lastBar = -1, lastAlpha = 1, lastDim = false;
   return {
-    group, hit, parts, mats, hips, torso, head, eye, sweep, armR, armL, legL, legR, legsType: legs, bar, star, mark,
+    group, hit, parts, mats, bar, star, mark, ...extra,
     fade(a) { if (a === lastAlpha) return; const was = lastAlpha < 1; lastAlpha = a; for (const k in mats) { mats[k].opacity = a; if (was !== a < 1) { mats[k].transparent = a < 1; mats[k].needsUpdate = true; } } },
     // a machine that has acted is shown dimmed, not see-through
     dim(on) { if (on === lastDim) return; lastDim = on; for (const k in mats) { const mt = mats[k]; if (!mt.color) continue; if (!mt.userData.base) mt.userData.base = mt.color.clone(); mt.color.copy(mt.userData.base); if (on) mt.color.multiplyScalar(0.55); } },
     bars(u2, sel, t) {
       const k = Math.max(0, u2.hp.body) / u2.max.body, key = Math.round(k * 18);
       if (key !== lastBar) { lastBar = key; const g = barC.getContext('2d'); g.fillStyle = '#100e0a'; g.fillRect(0, 0, 20, 5); g.fillStyle = '#3a3a30'; g.fillRect(1, 1, 18, 3); g.fillStyle = k > 0.5 ? '#9ac850' : k > 0.25 ? '#e0b030' : '#e04a30'; g.fillRect(1, 1, Math.max(1, key), 3); barT.needsUpdate = true; }
-      mark.visible = sel; mark.position.y = 1.7 + (Math.floor(t * 4) % 2) * 0.04; bar.visible = u2.hp.body > 0;
+      mark.visible = sel; mark.position.y = top + 0.3 + (Math.floor(t * 4) % 2) * 0.04; bar.visible = u2.hp.body > 0;
     },
     // a part flashes white while it is being hit
     flash(part, on, dead) { for (const mesh of parts[part] || []) mesh.material = on ? mats.white : dead ? mats.dead : mesh.userData.mat; },
@@ -314,6 +351,7 @@ export function buildMech(u) {
 // stance (0-1: one foot forward, knees bent), sway (-1..1: weight shifting), lean (+ forward), twist (shoulders), guard (0-1: arms up),
 // and for hits and moves: crouch (0-1: knees give), kickL/kickR (an arm knocked back), headKick, roll (sideways), armL/armR ({s, e}: set the arm)
 export function poseMech(m, u, pose) {
+  if (m.vehicle) return poseVehicle(m, u, pose);
   const w = pose.walk || 0, ph = pose.phase || 0, aim = pose.aim || 0, t = pose.t || 0;
   // broken parts go dark; a destroyed arm is gone
   for (const part of ['body', 'armL', 'armR', 'legs']) { const dead = u.hp[part] <= 0; if (m['dead' + part] === dead) continue; m['dead' + part] = dead; for (const mesh of m.parts[part] || []) mesh.material = dead ? m.mats.dead : mesh.userData.mat; }

@@ -77,3 +77,16 @@ button.ghost { background: #6e6c56; }
 .shop { display: grid; gap: 8px; } .ware { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 10px; padding: 6px 12px; color: var(--ink); } .ware b { min-width: 140px; } .ware small { color: var(--mute); flex: 1 1 200px; } .ware span { font-family: var(--pix); font-size: 20px; } .ware em { color: var(--mute); font-style: normal; font-size: 12px; }
 #result { position: absolute; inset: 0; background: #000a; display: flex; align-items: center; justify-content: center; z-index: 3; } .rb { padding: 20px 24px; text-align: center; min-width: 280px; } .rb h1 { font-family: var(--pix8), 'Noto Sans TC'; font-size: 20px; color: #2a2614; line-height: 1.6; } .rb h1.bad { color: var(--red); } .rb p { font-family: var(--pix); font-size: 22px; }
 @media (max-width: 600px) { #card { bottom: auto; top: 112px; } .hr button { font-size: 12px; padding: 3px 7px; } .hl { min-width: 0; } }
+/* the deployment picker, the shop's categories and pages, the second big button */
+.deploy { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; margin: 0 0 10px; color: #c8c6aa; }
+.deploy > span { width: 100%; font-weight: 700; } .deploy small { font-weight: 400; color: #9a987e; }
+.deploy .dp { padding: 4px 10px; font-size: 13px; } .deploy .dp.on { background: var(--gold); }
+.scats { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 10px; } .scats button { padding: 4px 10px; font-size: 13px; } .scats button.on { background: var(--gold); }
+.pager { display: flex; gap: 10px; align-items: center; justify-content: center; margin: 10px 0; color: #c8c6aa; }
+.ware .tier { font-style: normal; font-size: 11px; background: #2a2a22; color: #e8d890; padding: 0 4px; margin-left: 4px; }
+.go { display: flex; gap: 10px; flex-wrap: wrap; } .go .big { flex: 1; min-width: 220px; }
+.loot { color: #e8d890; font-size: 14px; }
+.brief.chap h1 { font-size: 34px; letter-spacing: 2px; }
+.pv .fl { font-style: normal; color: #ff8a60; font-weight: 700; }
+.ws .sk { color: #e8c040; }
+.pilot small { white-space: nowrap; }

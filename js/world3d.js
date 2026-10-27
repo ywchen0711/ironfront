@@ -11,7 +11,7 @@ import { alive } from './rules.js?v=15';
 import { buildMech, poseMech } from './mech3d.js?v=15';
 import { mapPose } from './render.js?v=15';
 
-const HEIGHT = { '.': 0.12, ',': 0.12, r: 0.1, f: 0.14, x: 0.14, c: 0.14, h: 0.45, H: 0.78, '#': 0.62, b: 1.75, w: -0.05 };
+const HEIGHT = { d: 0.12, '.': 0.12, ',': 0.12, r: 0.1, f: 0.14, x: 0.14, c: 0.14, h: 0.45, H: 0.78, '#': 0.62, b: 1.75, w: -0.05 };
 export const heightOf = (c) => HEIGHT[c] ?? 0.12;
 const BASE = -0.35; // the bottom of every block
 
@@ -61,6 +61,7 @@ function topTex(ch, v, along) {
     else if (ch === 'f') fillNoise(g, 16, 16, P.forest, v);
     else if (ch === 'x') fillNoise(g, 16, 16, P.rubble, v);
     else if (ch === 'c') fillNoise(g, 16, 16, P.snow, v);
+    else if (ch === 'd') fillNoise(g, 16, 16, P.sand, v);
     else if (ch === 'w') fillNoise(g, 16, 16, P.water, v, (x, y) => (hash(x, y, v + 9) > 0.93 ? '#4a7484' : null));
     else if (ch === 'h') fillNoise(g, 16, 16, P.grass, v);
     else if (ch === 'H') fillNoise(g, 16, 16, P.dirt.concat(P.grass.slice(0, 2)), v);
@@ -83,7 +84,7 @@ function sideTex(ch, v, hu) {
     else if (ch === 'h' || ch === 'H') fillNoise(g, w, h, P.dirt, v, (x, y) => (y === h - 1 ? '#1a1612' : null));
     else if (ch === 'w') fillNoise(g, w, h, ['#16262e', '#1a2c34'], v);
     else if (ch === 'c') fillNoise(g, w, h, P.snow.map((c) => shade(c, 0.82)), v);
-    else fillNoise(g, w, h, (ch === ',' ? P.conc : ch === 'r' ? P.asph : P.dirt).map((c) => shade(c, 0.7)), v, (x, y) => (y === h - 1 ? '#1a1612' : null));
+    else fillNoise(g, w, h, (ch === ',' ? P.conc : ch === 'r' ? P.asph : ch === 'd' ? P.sand : P.dirt).map((c) => shade(c, 0.7)), v, (x, y) => (y === h - 1 ? '#1a1612' : null));
   }));
 }
 const mat = (map) => new THREE.MeshToonMaterial({ map, gradientMap: toon });
@@ -122,7 +123,7 @@ export function load(battle) {
   sun.position.set(W / 2 - 10, 18, H / 2 - 6); sun.target.position.set(W / 2, 0, H / 2);
   // highlights and the cursor
   const hlMat = (col) => new THREE.MeshBasicMaterial({ map: cached('hl', () => tex(8, 8, (g) => { for (let y = 0; y < 8; y++) for (let x = 0; x < 8; x++) if ((x + y) % 2 === 0 || x === 0 || y === 0 || x === 7 || y === 7) { g.fillStyle = '#fff'; g.fillRect(x, y, 1, 1); } })), color: col, transparent: true, opacity: 0.6, depthWrite: false });
-  B.hlMats = { move: hlMat('#3a7aff'), att: hlMat('#ff4a2a'), range: hlMat('#ffb040'), peek: hlMat('#ff7a5a') };
+  B.hlMats = { move: hlMat('#3a7aff'), att: hlMat('#ff4a2a'), range: hlMat('#ffb040'), peek: hlMat('#ff7a5a'), zone: hlMat('#3ae0a0'), obj: hlMat('#ffe14a') };
   cursorMesh = new THREE.Mesh(new THREE.PlaneGeometry(1, 1), new THREE.MeshBasicMaterial({ map: cached('cur', () => tex(16, 16, (g) => { g.fillStyle = '#fff'; g.fillRect(0, 0, 16, 1); g.fillRect(0, 15, 16, 1); g.fillRect(0, 0, 1, 16); g.fillRect(15, 0, 1, 16); })), color: '#ffe14a', transparent: true, depthWrite: false }));
   cursorMesh.rotation.x = -Math.PI / 2; cursorMesh.visible = false; root.add(cursorMesh);
   // start looking at the squad from the classic angle
@@ -172,7 +173,7 @@ export function render(hl, opt = {}) {
     if (!m) { m = buildMech(u); m.group.traverse((o) => { o.receiveShadow = false; }); mechs.set(u, m); root.add(m.group); }
     m.group.visible = !!show; if (!show) continue;
     const vx = u.vx ?? u.x, vy = u.vy ?? u.y, h = u.vh ?? tileH(u.x, u.y);
-    m.group.position.set(vx, h, vy);
+    m.group.position.set(vx, h + (m.air ? 0.75 + Math.sin(t * 1.7 + vx) * 0.04 : 0), vy); // helicopters fly
     // turn smoothly towards where it wants to face
     let d = (u.dir ?? 0) - m.group.rotation.y; d = Math.atan2(Math.sin(d), Math.cos(d)); m.group.rotation.y += d * Math.min(1, dt * 12);
     poseMech(m, u, mapPose(u, t));

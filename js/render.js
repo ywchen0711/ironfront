@@ -41,6 +41,7 @@ const P = {
   snow: ['#d6dce2', '#ccd2d8', '#e2e8ec', '#bcc4cc', '#eef2f4'], water: ['#24404c', '#203a46', '#2a4854', '#1c3440'],
   forest: ['#3a4a22', '#34421e', '#42522a', '#2c381a'], rubble: ['#5a544a', '#4e483e', '#665e52', '#3c3630', '#76705e'],
   wallTop: ['#8a847a', '#827c72', '#929086'], wallSide: ['#6a665e', '#625e56', '#726e64'],
+  sand: ['#c8ae7a', '#bca270', '#d4ba86', '#b09464', '#dcc496'],
   roof: ['#5a2c1c', '#3e1c12'], roofEdge: '#7a3a24', wallA: ['#9a8a68', '#7e6e50'], wallB: ['#b0a080', '#948464'],
 };
 const side = (pal, k, light) => (x, y, depth) => (y === depth ? '#1a1612' : shade(pickPal(pal, hash(x * 7 + k, y * 13 + k, 3)), light));
@@ -268,39 +269,90 @@ export function drawBattle(g, sc) {
   for (const s of ['L', 'R']) if (sc.dead?.[s] && t > sc.deadAt) { const k = t - sc.deadAt, p = pos[s]; for (let j = 0; j < 7; j++) boom(g, p.x + Math.round(Math.sin(j * 2.3) * 22), base - 30 - Math.round(Math.cos(j * 1.7) * 30), 10 + j * 2, Math.min(1, Math.max(0, (k - j * 0.08) / 0.7))); }
   g.textAlign = 'left';
 }
+// how long each kind of shot is in the air before it lands (the scene and the sounds share these)
+export const FLY = { bullet: 0.14, pellets: 0.12, shell: 0.12, rocket: 0.32, missile: 0.55, grenade: 0.45, flame: 0.22, artillery: 0.75, flak: 0.2, rail: 0.06, melee: 0 };
+export const flyOf = (e) => FLY[e.fx] ?? (e.cat === 'long' ? 0.55 : 0.14);
 // the same effects over the 3D battle scene. A: screen points from battle3d.render; g: a transparent canvas
 // the size of the 3D view. k scales the effects with how big the machines are on screen.
 export function drawBattleFx(g, sc, A) {
-  const t = sc.t, k = A.unit / 68, z = (v) => Math.max(1, Math.round(v * k));
-  g.clearRect(0, 0, g.canvas.width, g.canvas.height);
+  const t = sc.t, k = A.unit / 68, z = (v) => Math.max(1, Math.round(v * k)), W = g.canvas.width, H = g.canvas.height;
+  g.clearRect(0, 0, W, H);
+  const dot = (x, y, r, c) => { g.fillStyle = c; g.fillRect(Math.round(x - r / 2), Math.round(y - r / 2), r, r); };
+  const flash = (x, y, dx, big = 1) => { g.fillStyle = '#fff4b0'; g.fillRect(x - z(2 * big), y - z(2 * big), z(5 * big), z(5 * big)); g.fillStyle = '#ffb040'; g.fillRect(x + dx * z(3 * big), y - z(1 * big), z(4 * big), z(3 * big)); g.fillRect(x - z(1), y - z(4 * big), z(3), z(1)); g.fillRect(x - z(1), y + z(3 * big), z(3), z(1)); };
   for (const e of sc.events) {
     if (e.cat === 'melee') continue;
-    const a = A[e.from], b = A[e.from === 'L' ? 'R' : 'L'], fly = e.cat === 'long' ? 0.55 : 0.14, dt = e.at - t; if (dt < 0 || dt > fly) continue;
-    const q = 1 - dt / fly, s0 = e.cat === 'long' ? a.launcher : a.muzzle, e0 = e.miss ? b.miss : b[e.part];
-    const at = (q2) => [Math.round(s0.x + (e0.x - s0.x) * q2), Math.round(s0.y + (e0.y - s0.y) * q2 - (e.cat === 'long' ? Math.sin(q2 * Math.PI) * 50 * k : 0))];
+    const fly = flyOf(e), dt = e.at - t;
+    const a = A[e.from], b = A[e.from === 'L' ? 'R' : 'L'], s0 = e.cat === 'long' ? a.launcher : a.muzzle, e0 = e.miss ? b.miss : b[e.part];
+    const dx = Math.sign(e0.x - s0.x) || a.f;
+    // artillery: the gun fires, then the shell comes down out of the sky on the target
+    if (e.fx === 'artillery') {
+      if (dt > fly - 0.12 && dt < fly + 0.02) { flash(s0.x, s0.y, dx, 1.6); for (let j = 0; j < 5; j++) dot(s0.x + dx * z(4 + j * 3), s0.y - z(j * 2), z(4), '#8a847c'); }
+      if (dt >= 0 && dt < fly * 0.55) { const q = 1 - dt / (fly * 0.55), y = -z(20) + (e0.y + z(20)) * q, x = e0.x - z(30) * (1 - q); for (let j = 0; j < 6; j++) dot(x - z(5) * j * 0.6, y - z(8) * j, z(j < 2 ? 3 : 2), j < 2 ? '#fff4b0' : '#c8b8a0'); }
+      continue;
+    }
+    if (dt < 0 || dt > fly) continue;
+    const q = 1 - dt / fly;
+    const arc = e.fx === 'missile' ? 50 : e.fx === 'grenade' ? 70 : e.fx === 'rocket' ? 10 : 0;
+    const at = (q2) => [Math.round(s0.x + (e0.x - s0.x) * q2), Math.round(s0.y + (e0.y - s0.y) * q2 - Math.sin(q2 * Math.PI) * arc * k)];
     const [x, y] = at(q);
-    if (e.cat === 'long') {
-      // a missile with a smoke trail that thins out behind it
-      for (let j = 10; j >= 1; j--) { const [tx, ty] = at(Math.max(0, q - j * 0.03)), r = z(j < 3 ? 3 : j < 6 ? 2.5 : 2); g.fillStyle = j < 2 ? '#ffd040' : j < 4 ? '#c8b8a0' : j < 7 ? '#8a847c' : '#5a5650'; g.fillRect(tx - r / 2, ty - r / 2, r, r); }
-      g.fillStyle = '#100e0a'; g.fillRect(x - z(5), y - z(2), z(11), z(5)); g.fillStyle = '#c8c4b8'; g.fillRect(x - z(4), y - z(1), z(9), z(3)); g.fillStyle = '#e04030'; g.fillRect(x + a.f * z(4), y - z(1), z(1), z(3));
+    if (e.fx === 'missile' || e.fx === 'rocket') {
+      // a missile or rocket with a smoke trail that thins out behind it
+      const n = e.fx === 'rocket' ? 7 : 10;
+      for (let j = n; j >= 1; j--) { const [tx, ty] = at(Math.max(0, q - j * 0.03)), r = z(j < 3 ? 3 : j < 6 ? 2.5 : 2); dot(tx, ty, r, j < 2 ? '#ffd040' : j < 4 ? '#c8b8a0' : j < 7 ? '#8a847c' : '#5a5650'); }
+      const L2 = e.fx === 'rocket' ? 7 : 11;
+      g.fillStyle = '#100e0a'; g.fillRect(x - z(L2 / 2), y - z(2), z(L2), z(5)); g.fillStyle = '#c8c4b8'; g.fillRect(x - z(L2 / 2 - 1), y - z(1), z(L2 - 2), z(3)); g.fillStyle = '#e04030'; g.fillRect(x + a.f * z(L2 / 2 - 1), y - z(1), z(1), z(3));
+      if (q < 0.25) flash(s0.x, s0.y, dx, 0.8);
+    } else if (e.fx === 'grenade') {
+      dot(x, y, z(4), '#2a2a26'); dot(x - z(1), y - z(1), z(2), '#6a6a60');
+      if (q < 0.2) flash(s0.x, s0.y, dx, 0.8);
+    } else if (e.fx === 'flame') {
+      // a stream of fire, licking along the line and spreading out towards the end
+      for (let j = 0; j < 14; j++) { const q2 = Math.max(0, q - j * 0.05); if (q2 <= 0) break; const [fx2, fy] = at(q2), sp = z(2 + q2 * 6), jx = (hash(j, e.n, Math.floor(t * 30)) - 0.5) * sp, jy = (hash(e.n, j, Math.floor(t * 30)) - 0.5) * sp; dot(fx2 + jx, fy + jy, z(3 + q2 * 5), j < 3 ? '#fff0a0' : j < 7 ? '#ffb040' : j < 11 ? '#e06020' : '#7a4030'); }
+    } else if (e.fx === 'rail') {
+      // a slug too fast to see: a white line, then a blue afterglow
+      g.fillStyle = q < 0.5 ? '#ffffff' : '#8ad8ff'; const n = 24;
+      for (let j = 0; j <= n; j++) { const [lx, ly] = at(j / n); g.fillRect(lx - z(1), ly - z(1), z(2), z(2)); }
+      flash(s0.x, s0.y, dx, 1.2);
+    } else if (e.fx === 'pellets') {
+      for (let j = -1; j <= 1; j++) { g.fillStyle = '#fff4b0'; g.fillRect(x - z(3), y + j * z(4) * q, z(6), z(1)); }
+      if (q < 0.4) flash(s0.x, s0.y, dx, 1.1);
     } else {
-      // a tracer, and a muzzle flash while it leaves the barrel
-      const dx = Math.sign(e0.x - s0.x) || a.f; g.fillStyle = '#fff4b0'; g.fillRect(x - z(4), y, z(8), z(1)); g.fillStyle = '#ffb040'; g.fillRect(x - dx * z(10), y, z(6), z(1));
-      if (q < 0.35) { g.fillStyle = '#fff4b0'; g.fillRect(s0.x - z(2), s0.y - z(2), z(5), z(5)); g.fillStyle = '#ffb040'; g.fillRect(s0.x + dx * z(3), s0.y - z(1), z(4), z(3)); g.fillRect(s0.x - z(1), s0.y - z(4), z(3), z(1)); g.fillRect(s0.x - z(1), s0.y + z(3), z(3), z(1)); }
+      // a tracer (a shell is thicker and brighter); flak bursts into puffs near the target
+      const th = e.fx === 'shell' ? 2 : 1;
+      g.fillStyle = '#fff4b0'; g.fillRect(x - z(4), y, z(8), z(th)); g.fillStyle = '#ffb040'; g.fillRect(x - dx * z(10), y, z(6), z(th));
+      if (q < 0.35) flash(s0.x, s0.y, dx, e.fx === 'shell' ? 1.8 : 1);
+      if (e.fx === 'shell' && q < 0.6) for (let j = 0; j < 4; j++) dot(s0.x + dx * z(6 + j * 4), s0.y - z(2 + j), z(5 - j), '#9a948a');
     }
   }
+  // flak: dark puffs of smoke where the shells burst, hit or miss
+  for (const e of sc.events) if (e.fx === 'flak') { const dt = t - e.at; if (dt < 0 || dt > 0.5) continue; const b = A[e.from === 'L' ? 'R' : 'L'], p = e.miss ? b.miss : b[e.part]; const r = z(6 + dt * 14); dot(p.x + (e.n % 3 - 1) * z(8), p.y - (e.n % 2) * z(6), r, dt < 0.08 ? '#ffd060' : '#4a4842'); }
   // sparks and explosions where it hits, then the numbers
   const fs = 8 * Math.max(1, Math.round(k * 0.6)); g.font = `${fs}px "Press Start 2P", monospace`; g.textBaseline = 'top'; g.textAlign = 'center';
+  const outline = (s2, x, y, col, o = Math.max(1, Math.round(fs / 8))) => { g.fillStyle = '#100e0a'; for (const [ox, oy] of [[-o, 0], [o, 0], [0, -o], [0, o]]) g.fillText(s2, x + ox, y + oy); g.fillStyle = col; g.fillText(s2, x, y); };
   for (const e of sc.events) {
     const dt = t - e.at; if (dt < 0 || dt > 0.9) continue;
     const b = A[e.from === 'L' ? 'R' : 'L'], p = e.miss ? b.miss : b[e.part];
-    if (!e.miss && dt < 0.3) boom(g, p.x + (e.n % 3 - 1) * z(4), p.y + (e.n % 2) * z(4), z(e.cat === 'long' ? 16 : e.cat === 'melee' ? 11 : 7), dt / 0.3);
+    const big = e.fx === 'shell' || e.fx === 'artillery' || e.cat === 'long' ? 16 : e.fx === 'rocket' || e.fx === 'grenade' ? 12 : e.cat === 'melee' ? 11 : 7;
+    if (!e.miss && dt < 0.3) boom(g, p.x + (e.n % 3 - 1) * z(4), p.y + (e.n % 2) * z(4), z(big * (e.crit ? 1.3 : 1)), dt / 0.3);
+    if (e.miss && (e.fx === 'artillery' || e.fx === 'grenade') && dt < 0.3) boom(g, p.x, p.y + z(20), z(10), dt / 0.3);
     if (!e.miss && dt < 0.4) sparks(g, p.x, p.y, z(1), dt / 0.4, e.n);
-    const tx = b.head.x + ((e.n % 3) - 1) * z(10), ty = b.head.y + z(4) - (e.n % 3) * z(9) - Math.round(dt * 24 * k), s = e.miss ? 'MISS' : `${e.dmg}`;
-    const o = Math.max(1, Math.round(fs / 8)); g.fillStyle = '#100e0a'; for (const [dx, dy] of [[-o, 0], [o, 0], [0, -o], [0, o]]) g.fillText(s, tx + dx, ty + dy);
-    g.fillStyle = e.miss ? '#c8d0d8' : e.broke ? '#ff7040' : '#ffe070'; g.fillText(s, tx, ty);
+    const tx = b.head.x + ((e.n % 3) - 1) * z(10), ty = b.head.y + z(4) - (e.n % 3) * z(9) - Math.round(dt * 24 * k), s2 = e.miss ? 'MISS' : `${e.dmg}`;
+    outline(s2, tx, ty, e.miss ? '#c8d0d8' : e.crit ? '#ff5030' : e.broke ? '#ff7040' : '#ffe070');
+    if (e.crit && dt < 0.7) outline('CRITICAL', tx, ty - fs - z(2), '#ff9a40');
+    if ((e.burn || e.stun) && dt > 0.15) outline(e.burn ? 'BURN' : 'STUN', b.head.x, b.head.y - fs * 3, e.burn ? '#ff7a30' : '#8ad8ff');
   }
-  for (const s of ['L', 'R']) if (sc.dead?.[s] && t > sc.deadAt) { const q = t - sc.deadAt, p = A[s].body; for (let j = 0; j < 8; j++) boom(g, p.x + Math.round(Math.sin(j * 2.3) * 24 * k), p.y + z(10) - Math.round(Math.cos(j * 1.7) * 30 * k), z(10 + j * 2), Math.min(1, Math.max(0, (q - j * 0.08) / 0.7))); }
+  // callouts: a pilot's skill as the volley starts, the defender's as it answers, an attack from the side or the back
+  for (const e of sc.events) {
+    if (e.callA) { const dt = t - (e.at - 0.65); if (dt > 0 && dt < 0.9) { const a = A[e.from]; outline('★ ' + e.callA, a.head.x, a.head.y - fs * 3 - Math.round(dt * 10 * k), '#ffd040'); } }
+    if (e.callD) { const dt = t - e.at; if (dt > -0.1 && dt < 0.8) { const b = A[e.from === 'L' ? 'R' : 'L']; outline('★ ' + e.callD, b.head.x, b.head.y - fs * 4.5, '#8ad8ff'); } }
+    if (e.callF) { const dt = t - (e.at - 0.65); if (dt > 0 && dt < 0.9) { const b = A[e.from === 'L' ? 'R' : 'L']; outline(e.callF, b.head.x, b.head.y - fs * 6, '#ff8a60'); } }
+  }
+  for (const s3 of ['L', 'R']) if (sc.dead?.[s3] && t > sc.deadAt) { const q = t - sc.deadAt, p = A[s3].body; for (let j = 0; j < 8; j++) boom(g, p.x + Math.round(Math.sin(j * 2.3) * 24 * k), p.y + z(10) - Math.round(Math.cos(j * 1.7) * 30 * k), z(10 + j * 2), Math.min(1, Math.max(0, (q - j * 0.08) / 0.7))); }
+  // the weather, falling past the camera
+  const wx = sc.weather;
+  if (wx === 'rain') { g.fillStyle = '#a8b8c8'; for (let j = 0; j < 90; j++) { const x = (hash(j, 1, 7) * W + t * 60) % W, y = (hash(j, 2, 7) * H + t * 700 * (0.7 + hash(j, 3, 7) * 0.5)) % H; g.fillRect(x, y, 1, z(6)); } }
+  else if (wx === 'snow') { g.fillStyle = '#eef2f4'; for (let j = 0; j < 70; j++) { const x = (hash(j, 1, 8) * W + Math.sin(t + j) * 12 * k + t * 20) % W, y = (hash(j, 2, 8) * H + t * 60 * (0.6 + hash(j, 3, 8))) % H; g.fillRect(x, y, z(2), z(2)); } }
+  else if (wx === 'sand') { g.fillStyle = '#d8b878'; for (let j = 0; j < 60; j++) { const x = (hash(j, 1, 9) * W + t * 500 * (0.6 + hash(j, 3, 9))) % W, y = hash(j, 2, 9) * H; g.fillRect(x, y, z(7), 1); } }
   g.textAlign = 'left';
 }
 // hot fragments flying out of a hit

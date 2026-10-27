@@ -1,4 +1,5 @@
-// 鋼魂戰線 / Iron Front: the parts, the weapons, the pilots and the six missions.
+// 鋼魂戰線 / Iron Front: the parts, the weapons, the pilots and the first missions.
+import { GENERATED } from './items.js?v=15';
 // Every wanzer (walking tank) is a body, two arms and legs; it carries a weapon in each hand and one on its shoulder.
 // The body's power output must carry the weight of everything else.
 
@@ -38,7 +39,30 @@ export const WEAPONS = [
   { id: 'MS2', zh: 'MS-8 重飛彈', en: 'MS-8 heavy missile', cat: 'long', dmg: 65, shots: 1, rmin: 3, rmax: 7, acc: 70, ammo: 3, w: 20, price: 4500 },
 ];
 export const FIST = { id: 'FIST', zh: '拳頭', en: 'Fist', cat: 'melee', dmg: 0, shots: 1, rmin: 1, rmax: 1, acc: 80, w: 0 };
-export const ITEM = Object.fromEntries([...BODIES, ...ARMS, ...LEGS, ...WEAPONS].map((x) => [x.id, x]));
+// things to protect or destroy: a supply truck (it drives), a comms tower and a fuel depot (they stand)
+const OBJ = [
+  { id: 'S-truck', kind: 'body', cls: 'truck', zh: '補給卡車', en: 'Supply truck', hp: 260, power: 999, armour: 'M', tier: 1 },
+  { id: 'S-tower', kind: 'body', cls: 'tower', zh: '通訊塔', en: 'Comms tower', hp: 420, power: 999, armour: 'H', tier: 1 },
+  { id: 'S-depot', kind: 'body', cls: 'depot', zh: '燃料庫', en: 'Fuel depot', hp: 360, power: 999, armour: 'M', tier: 1 },
+  { id: 'S-base', kind: 'legs', zh: '基座', en: 'Base', hp: 999, move: 0, eva: 0, w: 0, tier: 1 },
+];
+// the first parts and weapons, described like the generated ones (items.js)
+const OLD = {
+  B1: { kind: 'body', cls: 'wanzer', tier: 1, maker: 'PW', armour: 'M', look: 'B1' }, B2: { kind: 'body', cls: 'wanzer', tier: 1, maker: 'BI', armour: 'M', look: 'B2' },
+  B4: { kind: 'body', cls: 'wanzer', tier: 2, maker: 'KA', armour: 'L', look: 'B4' }, B3: { kind: 'body', cls: 'wanzer', tier: 2, maker: 'GH', armour: 'H', look: 'B3' },
+  A1: { kind: 'arm', tier: 1, maker: 'PW', look: 'A1' }, A2: { kind: 'arm', tier: 1, maker: 'BI', look: 'A2' }, A4: { kind: 'arm', tier: 2, maker: 'KA', look: 'A4' }, A3: { kind: 'arm', tier: 2, maker: 'GH', look: 'A3' },
+  L1: { kind: 'legs', tier: 1, maker: 'PW', look: 'L1' }, L2: { kind: 'legs', tier: 1, maker: 'BI', look: 'L2' }, L4: { kind: 'legs', tier: 2, maker: 'KA', look: 'L4' },
+  L3: { kind: 'legs', tier: 2, maker: 'GH', look: 'L3' }, L5: { kind: 'legs', tier: 2, maker: 'KA', look: 'L5' },
+  MG1: { fam: 'mg', dt: 'kin', fx: 'bullet', tier: 1 }, SG1: { fam: 'shotgun', dt: 'kin', fx: 'pellets', tier: 1 }, RF1: { fam: 'rifle', dt: 'kin', fx: 'bullet', tier: 1 },
+  MG2: { fam: 'hmg', dt: 'kin', fx: 'bullet', tier: 1 }, RF2: { fam: 'sniper', dt: 'kin', fx: 'bullet', tier: 2, crit: 10 }, RD1: { fam: 'rod', dt: 'imp', fx: 'melee', tier: 1, stun: 0.3 },
+  KN1: { fam: 'knuckle', dt: 'imp', fx: 'melee', tier: 1 }, AX1: { fam: 'axe', dt: 'imp', fx: 'melee', tier: 1, ap: 0.3 }, SH1: { fam: 'shieldL', tier: 1 }, SH2: { fam: 'shieldH', tier: 2 },
+  RK1: { fam: 'rocket', dt: 'exp', fx: 'rocket', tier: 1 }, MS1: { fam: 'missile', dt: 'exp', fx: 'missile', tier: 1 }, MS2: { fam: 'hmissile', dt: 'exp', fx: 'missile', tier: 3 },
+};
+for (const x of [...BODIES, ...ARMS, ...LEGS, ...WEAPONS]) Object.assign(x, { kind: 'weapon', maker: 'PW' }, OLD[x.id]);
+export { MAKERS, VCLASS, FAMILIES } from './items.js?v=15';
+export const ITEM = Object.fromEntries([...BODIES, ...ARMS, ...LEGS, ...WEAPONS, ...GENERATED, ...OBJ].map((x) => [x.id, x]));
+export const BUYABLE = Object.values(ITEM).filter((x) => x.price > 0 && !x.id.startsWith('S-'));
+export const ALL_ITEMS = BUYABLE;
 
 // terrain: move cost (99 = cannot), height, evade bonus for the one standing on it
 export const TERRAIN = {
@@ -51,21 +75,51 @@ export const TERRAIN = {
   x: { cost: 2, h: 0, eva: 10, zh: '瓦礫', en: 'Rubble', c: '#8a8070' },
   c: { cost: 2, h: 0, eva: 0, zh: '雪原', en: 'Snow', c: '#e8eef2' },
   w: { cost: 99, h: -1, eva: 0, zh: '水', en: 'Water', c: '#4a8ac8', water: true },
+  d: { cost: 2, h: 0, eva: 0, zh: '沙漠', en: 'Desert', c: '#d8c090' },
   b: { cost: 99, h: 3, eva: 0, zh: '建築', en: 'Building', c: '#8a8a96', block: true },
   '#': { cost: 99, h: 2, eva: 0, zh: '牆', en: 'Wall', c: '#76706a', block: true },
 };
 
 // pilots: lv raises hit and evade; exp to the next level is lv * 100
 export const PILOTS = {
-  ron: { zh: '洛恩', en: 'Ron', lv: 4, color: '#3a6ab0' },
-  mia: { zh: '米雅', en: 'Mia', lv: 3, color: '#5aa0d8' },
-  karl: { zh: '卡爾', en: 'Karl', lv: 3, color: '#4a7a9a' },
-  lena: { zh: '莉娜', en: 'Lena', lv: 5, color: '#6a8ad0' },
-  duke: { zh: '杜克', en: 'Duke', lv: 6, color: '#3a5a8a' },
+  ron: { zh: '洛恩', en: 'Ron', lv: 4, skills: ['fury', 'guard', 'double'] },
+  mia: { zh: '米雅', en: 'Mia', lv: 3, skills: ['eagle', 'double', 'dodge'] },
+  karl: { zh: '卡爾', en: 'Karl', lv: 3, skills: ['guard', 'fury', 'pierce'] },
+  lena: { zh: '莉娜', en: 'Lena', lv: 5, skills: ['eagle', 'pierce', 'dodge'] },
+  duke: { zh: '杜克', en: 'Duke', lv: 6, skills: ['guard', 'pierce', 'double'] },
+  sora: { zh: '蒼', en: 'Sora', lv: 7, skills: ['dodge', 'double', 'eagle'] },
+  greta: { zh: '葛蕾塔', en: 'Greta', lv: 9, skills: ['pierce', 'guard', 'eagle'] },
+  pip: { zh: '皮普', en: 'Pip', lv: 6, skills: ['dodge', 'double'] },
+  ivo: { zh: '伊沃', en: 'Ivo', lv: 11, skills: ['eagle', 'pierce'] },
+  anya: { zh: '安雅', en: 'Anya', lv: 20, skills: ['eagle', 'dodge', 'pierce'] },
+  tomas: { zh: '托馬斯', en: 'Tomas', lv: 22, skills: ['double', 'eagle', 'guard'] },
+  hound: { zh: '黑犬', en: 'Black Hound', lv: 9, skills: ['fury', 'dodge', 'pierce', 'double'] },
+  elise: { zh: '艾莉絲', en: 'Elise', lv: 1 },
+  // the other side
   grunt: { zh: '同盟兵', en: 'Alliance pilot', lv: 1 },
-  vet: { zh: '同盟老兵', en: 'Alliance veteran', lv: 2 },
-  veit: { zh: '韋特少校', en: 'Major Veit', lv: 6 },
-  hound: { zh: '黑犬', en: 'Black Hound', lv: 9 },
+  vet: { zh: '同盟老兵', en: 'Alliance veteran', lv: 2, skills: ['eagle', 'guard'] },
+  veit: { zh: '韋特少校', en: 'Major Veit', lv: 6, skills: ['guard', 'eagle'] },
+  rask: { zh: '拉斯克上校', en: 'Colonel Rask', lv: 10, skills: ['guard', 'double', 'eagle'] },
+  wraith: { zh: '幽靈', en: 'Wraith', lv: 16, skills: ['dodge', 'double', 'eagle'] },
+  brann: { zh: '布蘭將軍', en: 'General Brann', lv: 22, skills: ['pierce', 'guard', 'double'] },
+  hunter: { zh: '聯合追兵', en: 'Union hunter', lv: 1, skills: ['eagle'] },
+  viper: { zh: '蝰蛇', en: 'Viper', lv: 40, skills: ['dodge', 'fury', 'double', 'pierce'] },
+  sayer: { zh: '賽爾將軍', en: 'General Sayer', lv: 44, skills: ['guard', 'eagle', 'pierce'] },
+  guard: { zh: '奧林保全', en: 'Orrin security', lv: 1, skills: ['guard'] },
+  kessler: { zh: '凱斯勒', en: 'Kessler', lv: 56, skills: ['guard', 'double', 'pierce', 'eagle'] },
+  proto: { zh: '試作機', en: 'Prototype', lv: 50, skills: ['pierce', 'guard', 'fury'] },
+  halden: { zh: '哈爾登', en: 'Halden', lv: 70, skills: ['guard', 'dodge', 'pierce', 'double', 'eagle'] },
+  merc: { zh: '傭兵', en: 'Mercenary', lv: 1, skills: ['double'] },
+  rebel: { zh: '游擊隊', en: 'Partisan', lv: 1, skills: ['dodge'] },
+};
+// pilot skills: each now and then fires in a fight (more often the higher the level)
+export const SKILLS = {
+  double: { zh: '連射', en: 'Double fire', role: 'att', lv: 3, only: (w) => w.cat === 'short' && w.shots >= 2 },
+  eagle: { zh: '鷹眼', en: 'Eagle eye', role: 'att', lv: 2, only: (w) => w.cat !== 'melee' },
+  fury: { zh: '猛攻', en: 'Fury', role: 'att', lv: 2, only: (w) => w.cat === 'melee' },
+  pierce: { zh: '穿甲', en: 'Armour breaker', role: 'att', lv: 5 },
+  guard: { zh: '鐵壁', en: 'Iron wall', role: 'def', lv: 3 },
+  dodge: { zh: '閃避', en: 'Evasion', role: 'def', lv: 4 },
 };
 // the squad at the start
 export const START = {
@@ -229,7 +283,18 @@ export const TXT = {
     base: '基地', paint: '塗裝', hangar: '機庫', shop: '商店', sortie: '出擊', money: '資金', buy: '買', sell: '賣', owned: '庫存', equip: '裝備', briefing: '任務簡報', next: '下一步',
     retry: '重新挑戰', toBase: '回基地', theEnd: '全部任務完成，謝謝遊玩！', tap: '點畫面繼續', select: '選擇', moveHint: '點藍色格子移動，點自己原地不動', targetHint: '點紅色的敵人',
     phaseP: '我方回合開始', phaseE: '敵方回合', newGame: '確定要開新遊戲嗎？目前的進度會被覆蓋。', menu: '選單', quit: '放棄任務', expUp: (n, lv) => `${n} 升到 Lv${lv}！`,
-    cats: { short: '射擊', melee: '格鬥', shield: '盾', long: '飛彈' }, terr: '地形', eva: '迴避', moveN: '移動力', mp: '剩餘', boss: '指揮官' },
+    cats: { short: '射擊', melee: '格鬥', shield: '盾', long: '飛彈' },
+    objAll: '擊毀所有敵人', objDefend: (n) => `守住目標 ${n} 回合`, objSurvive: (n) => `撐過 ${n} 回合`, objEscort: '護送卡車抵達綠色區域', objReach: '任一機體抵達綠色區域', objDestroy: (n) => `摧毀全部 ${n} 個目標`,
+    turnOf: (a, b) => `第 ${a}/${b} 回合`, reinf: '敵軍增援！', burnT: '燃燒', stunT: '暈眩', burnDmg: (n, d) => `${n} 燃燒中 -${d}`, flankSide: '側面攻擊', flankBack: '背後攻擊！', objLost: '目標被摧毀了',
+    wx: { clear: '晴天', dusk: '黃昏', night: '夜間', rain: '雨天', fog: '濃霧', snow: '降雪', sand: '沙暴' },
+    wxNote: { clear: '', dusk: '', night: '命中 -10（有感測器 -4）', rain: '命中 -5，火焰傷害 -30%', fog: '距離 4 以上命中 -15', snow: '', sand: '命中 -8，迴避 +5' },
+    cls: { wanzer: '機甲', tank: '戰車', apc: '裝甲車', heli: '直升機', spg: '自走砲', aa: '防空車', truck: '卡車', tower: '通訊塔', depot: '燃料庫' },
+    vs: { body: '車體', armR: '主砲座', armL: '副掛架', legs: '驅動', wR: '主武器', wL: '副武器', sh: '飛彈／砲' }, acc: '配件',
+    deploy: '出擊成員', deployHint: (n) => `最多 ${n} 名（點選切換）`, patrol: '巡邏任務', patrolHint: '額外的戰鬥：賺錢、練等級、找戰利品', salvage: '戰利品', joined: (n) => `${n} 加入了小隊！`, left: (n) => `${n} 離開了小隊……`,
+    armour: '裝甲', arm3: { L: '輕', M: '中', H: '重' }, est: '預估', vsAir: '對空', cantHit: '打不到', noMelee: '無法近戰空中目標', chapter: '章',
+    shopCats: { body: '機身', arm: '手臂', legs: '腿部', hand: '手持武器', shoulder: '肩部武器', vbody: '載具車體', vpart: '載具零件', vweapon: '載具武器', acc: '配件' }, owned2: '持有', all: '全部', more: '更多', prev: '上一頁', nextP: '下一頁', tier: 'T', maker: '廠商',
+    stat: { hp: 'HP', power: '出力', acc: '命中', punch: '拳', move: '移動', eva: '迴避', guard: '減傷', ap: '穿甲', aa: '對空', indirect: '曲射', burn: '燃燒', stun: '暈眩', crit: '爆擊', ecm: '干擾', still: '靜止命中', kits: '修理包', melee: '格鬥', resist: '抗爆', camo: '偽裝', hpBody: '機身HP' },
+    dt: { kin: '動能', exp: '爆炸', imp: '衝擊', fire: '火焰' }, statusNone: '', fits: '可裝備', noFit: '裝不上', compare: '目前', terr: '地形', eva: '迴避', moveN: '移動力', mp: '剩餘', boss: '指揮官' },
   en: { title: 'Iron Front', sub: 'A wanzer tactics game', start: 'New game', cont: 'Continue', lang: '中文', mission: 'Mission', turn: (n) => `Turn ${n}`, yours: 'Your turn', theirs: 'Enemy turn',
     endTurn: 'End turn', repair: 'Repair', kits: 'Repair kits', repaired: 'Repaired', anim: 'Battle scenes', on: 'on', off: 'off', move: 'Move', attack: 'Attack', wait: 'Wait', cancel: 'Cancel', fire: 'Fire!', back: 'Back',
     body: 'Body', armL: 'Left arm', armR: 'Right arm', legs: 'Legs', wL: 'Left hand', wR: 'Right hand', sh: 'Shoulder', none: '(none)', weight: 'Weight', power: 'Power', overweight: 'Too heavy!',
@@ -238,5 +303,17 @@ export const TXT = {
     base: 'Base', paint: 'Paint', hangar: 'Hangar', shop: 'Shop', sortie: 'Sortie', money: 'Funds', buy: 'Buy', sell: 'Sell', owned: 'Owned', equip: 'Equip', briefing: 'Briefing', next: 'Next',
     retry: 'Try again', toBase: 'Back to base', theEnd: 'Every mission complete — thank you for playing!', tap: 'Tap to go on', select: 'Select', moveHint: 'Tap a blue square to move, or the unit itself to stay', targetHint: 'Tap a red enemy',
     phaseP: 'Your turn', phaseE: 'Enemy turn', newGame: 'Start a new game? Your current progress will be replaced.', menu: 'Menu', quit: 'Abandon mission', expUp: (n, lv) => `${n} reached Lv${lv}!`,
-    cats: { short: 'Gun', melee: 'Melee', shield: 'Shield', long: 'Missile' }, terr: 'Terrain', eva: 'Evade', moveN: 'Move', mp: 'Left', boss: 'Commander' },
+    cats: { short: 'Gun', melee: 'Melee', shield: 'Shield', long: 'Missile' }, terr: 'Terrain', eva: 'Evade', moveN: 'Move', mp: 'Left', boss: 'Commander',
+    objAll: 'Destroy every enemy', objDefend: (n) => `Protect the objective for ${n} turns`, objSurvive: (n) => `Hold out for ${n} turns`, objEscort: 'Get the truck to the green zone', objReach: 'Get any machine to the green zone', objDestroy: (n) => `Destroy all ${n} targets`,
+    turnOf: (a, b) => `Turn ${a}/${b}`, reinf: 'Enemy reinforcements!', burnT: 'Burning', stunT: 'Stunned', burnDmg: (n, d) => `${n} is burning -${d}`, flankSide: 'FLANK', flankBack: 'BACK ATTACK!', objLost: 'The objective was destroyed',
+    wx: { clear: 'Clear', dusk: 'Dusk', night: 'Night', rain: 'Rain', fog: 'Fog', snow: 'Snow', sand: 'Sandstorm' },
+    wxNote: { clear: '', dusk: '', night: 'hit -10 (-4 with a sensor)', rain: 'hit -5, fire damage -30%', fog: 'hit -15 at range 4+', snow: '', sand: 'hit -8, evade +5' },
+    cls: { wanzer: 'Wanzer', tank: 'Tank', apc: 'APC', heli: 'Helicopter', spg: 'Artillery', aa: 'Anti-air', truck: 'Truck', tower: 'Comms tower', depot: 'Fuel depot' },
+    vs: { body: 'Hull', armR: 'Turret', armL: 'Side mount', legs: 'Drive', wR: 'Main gun', wL: 'Second gun', sh: 'Missiles / gun' }, acc: 'Accessory',
+    deploy: 'Sortie team', deployHint: (n) => `Up to ${n} (tap to switch)`, patrol: 'Patrol', patrolHint: 'An extra fight: money, levels and salvage', salvage: 'Salvage', joined: (n) => `${n} joined the squad!`, left: (n) => `${n} has left the squad…`,
+    armour: 'Armour', arm3: { L: 'light', M: 'medium', H: 'heavy' }, est: 'Est.', vsAir: 'vs air', cantHit: 'cannot hit', noMelee: 'no melee against aircraft', chapter: 'Ch.',
+    shopCats: { body: 'Bodies', arm: 'Arms', legs: 'Legs', hand: 'Hand weapons', shoulder: 'Shoulder weapons', vbody: 'Vehicle hulls', vpart: 'Vehicle parts', vweapon: 'Vehicle weapons', acc: 'Accessories' }, owned2: 'Owned', all: 'All', more: 'More', prev: 'Prev', nextP: 'Next', tier: 'T', maker: 'Maker',
+    stat: { hp: 'HP', power: 'Power', acc: 'Hit', punch: 'Punch', move: 'Move', eva: 'Evade', guard: 'Guard', ap: 'AP', aa: 'Anti-air', indirect: 'Indirect', burn: 'Burn', stun: 'Stun', crit: 'Crit', ecm: 'ECM', still: 'Still aim', kits: 'Kits', melee: 'Melee', resist: 'Blast res.', camo: 'Camo', hpBody: 'Body HP' },
+    dt: { kin: 'kinetic', exp: 'explosive', imp: 'impact', fire: 'fire' }, statusNone: '', fits: 'Fits', noFit: 'Does not fit', compare: 'Now',
+  },
 };
