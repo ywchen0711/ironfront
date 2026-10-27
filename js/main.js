@@ -60,7 +60,7 @@ function screenToTile(sx, sy) {
   return null;
 }
 // a word over a unit on the map, like the "Fire" when it shoots
-function label(u, text, ms = 700, col) { const p = iso(u.x, u.y); B.labels.push({ x: p.x, y: p.y - hAt(u.x, u.y) - 44, text, col, until: performance.now() + ms }); }
+function label(u, text, ms = 700, col) { const p = iso(u.x, u.y); B.labels.push({ x: p.x, y: p.y - hAt(u.x, u.y) - 38, text, col, until: performance.now() + ms }); }
 
 // ---------------------------------------------------------------- the loop
 function frame() {

@@ -180,7 +180,7 @@ function unitAt(g, u, x, y, t, opt) {
   if (u.dying) for (let k = 0; k < 6; k++) { g.fillStyle = ['#ffe070', '#ff9a30', '#d04020'][k % 3]; const a = k * 1.1 + u.dying * 4, r = 4 + u.dying * 12; g.fillRect(Math.round(x + Math.cos(a) * r), Math.round(y - 14 + Math.sin(a) * r * 0.6), 3, 3); }
   if (!alive(u)) return;
   // a small health bar, a star for a commander, a bobbing arrow over the selected one
-  const k = u.hp.body / u.max.body, bx = x - 7, by = y - 50;
+  const k = u.hp.body / u.max.body, bx = x - 7, by = y - 42;
   g.fillStyle = '#100e0a'; g.fillRect(bx - 1, by - 1, 16, 4); g.fillStyle = '#3a3a30'; g.fillRect(bx, by, 14, 2); g.fillStyle = k > 0.5 ? '#9ac850' : k > 0.25 ? '#e0b030' : '#e04a30'; g.fillRect(bx, by, Math.max(1, Math.round(14 * k)), 2);
   if (u.boss) { g.fillStyle = '#ffd23a'; g.fillRect(x - 1, by - 5, 3, 3); g.fillRect(x, by - 6, 1, 5); g.fillRect(x - 2, by - 4, 5, 1); }
   if (opt.sel === u) { const b = Math.floor(t * 4) % 2; g.fillStyle = b ? '#ffe14a' : '#ffffff'; g.fillRect(x - 2, by - 9 - b, 5, 2); g.fillRect(x - 1, by - 7 - b, 3, 1); g.fillRect(x, by - 6 - b, 1, 1); }
@@ -221,7 +221,7 @@ function paintBackdrop(ground) {
   g.fillStyle = '#0006'; g.fillRect(0, 122, BW, 3);
   return c;
 }
-const PART_Y = { body: 70, armL: 76, armR: 66, legs: 24 };
+const PART_Y = { body: 50, armL: 56, armR: 46, legs: 18 };
 export function drawBattle(g, sc) {
   const t = sc.t;
   if (backKey !== sc.ground || !backdrop) { backdrop = paintBackdrop(sc.ground); backKey = sc.ground; }
@@ -248,7 +248,7 @@ export function drawBattle(g, sc) {
   for (const e of sc.events) {
     if (e.cat === 'melee') continue;
     const a = pos[e.from], b = pos[e.from === 'L' ? 'R' : 'L'], fly = e.cat === 'long' ? 0.55 : 0.14, dt = e.at - t; if (dt < 0 || dt > fly) continue;
-    const k = 1 - dt / fly, sx = a.x + a.f * (e.cat === 'long' ? -2 : 50), sy = base - (e.cat === 'long' ? 96 : 70), ex = b.x - b.f * (e.miss ? -70 : 8), ey = base - (e.miss ? 92 : PART_Y[e.part]);
+    const k = 1 - dt / fly, sx = a.x + a.f * (e.cat === 'long' ? -8 : 62), sy = base - (e.cat === 'long' ? 78 : 52), ex = b.x - b.f * (e.miss ? -70 : 8), ey = base - (e.miss ? 74 : PART_Y[e.part]);
     const at = (q) => [Math.round(sx + (ex - sx) * q), Math.round(sy + (ey - sy) * q - (e.cat === 'long' ? Math.sin(q * Math.PI) * 50 : 0))];
     const [x, y] = at(k);
     if (e.cat === 'long') { for (let j = 6; j >= 1; j--) { const [tx, ty] = at(Math.max(0, k - j * 0.035)); g.fillStyle = j < 2 ? '#ffd040' : j < 3 ? '#c8b8a0' : '#6a6460'; g.fillRect(tx - 1, ty - 1, j < 3 ? 3 : 2, j < 3 ? 3 : 2); } g.fillStyle = '#100e0a'; g.fillRect(x - 5, y - 2, 11, 5); g.fillStyle = '#c8c4b8'; g.fillRect(x - 4, y - 1, 9, 3); g.fillStyle = '#e04030'; g.fillRect(x + a.f * 4, y - 1, 1, 3); }
@@ -259,7 +259,7 @@ export function drawBattle(g, sc) {
   g.font = '8px "Press Start 2P", monospace'; g.textBaseline = 'top'; g.textAlign = 'center';
   for (const e of sc.events) {
     const dt = t - e.at; if (dt < 0 || dt > 0.9) continue;
-    const b = pos[e.from === 'L' ? 'R' : 'L'], hx = b.x - b.f * 6, hy = base - (e.miss ? 92 : PART_Y[e.part]);
+    const b = pos[e.from === 'L' ? 'R' : 'L'], hx = b.x - b.f * 6, hy = base - (e.miss ? 74 : PART_Y[e.part]);
     if (!e.miss && dt < 0.3) boom(g, hx + (e.n % 3 - 1) * 4, hy + (e.n % 2) * 4, e.cat === 'long' ? 16 : 7, dt / 0.3);
     const tx = b.x + ((e.n % 5) - 2) * 18, ty = hy - 20 - (e.n % 2) * 10 - Math.round(dt * 24), s = e.miss ? 'MISS' : `${e.dmg}`;
     g.fillStyle = '#100e0a'; for (const [dx, dy] of [[-1, 0], [1, 0], [0, -1], [0, 1]]) g.fillText(s, tx + dx, ty + dy);
