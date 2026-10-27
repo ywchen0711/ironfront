@@ -35,6 +35,9 @@ export function init(canvas) {
   sun.shadow.mapSize.set(1024, 1024); sun.shadow.bias = -0.002;
   scene.add(sun); scene.add(sun.target);
 }
+// the battle scene borrows the same renderer
+export function renderWith(scn, cmr) { renderer.render(scn, cmr); }
+export const viewSize = () => ({ w: renderer.domElement.width, h: renderer.domElement.height });
 export function resize(w, h, px) {
   VW = w; VH = h; PX = px;
   renderer.setSize(Math.max(1, Math.ceil(w / px)), Math.max(1, Math.ceil(h / px)), false);

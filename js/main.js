@@ -3,7 +3,8 @@
 import { MISSIONS, START, JOIN, PILOTS, ITEM, BODIES, ARMS, LEGS, WEAPONS, TERRAIN, TXT } from './data.js';
 import { makeUnit, alive, reach, weaponsOf, inRange, dist, hitChance, counterOf, fight, learn, weight, power, moveOf, evadeOf, PARTS, expected, repair } from './rules.js';
 import { plan } from './ai.js';
-import { drawBattle, BATTLE_SIZE } from './render.js';
+import { drawBattleFx } from './render.js';
+import * as B3 from './battle3d.js';
 import * as W3 from './world3d.js';
 import { sfx, setMute, muted } from './sfx.js';
 
@@ -27,7 +28,7 @@ const colon = () => (prefs.lang === 'en' ? ': ' : '：');
 // The 2D canvas on top only shows the side-on battle scene.
 let VW = 960, VH = 600, PX = 3, mode = 'title', B = null, scene = null;
 const gl = $('#gl');
-const bat = document.createElement('canvas'); bat.width = BATTLE_SIZE.w; bat.height = BATTLE_SIZE.h; const bg2 = bat.getContext('2d');
+const fx = document.createElement('canvas'), fxg = fx.getContext('2d'); // shots and explosions over the 3D battle scene
 const PL = { body: 'BODY', armL: 'ARM L', armR: 'ARM R', legs: 'LEGS' };
 W3.init(gl);
 function resize() {
@@ -45,11 +46,13 @@ function label(u, text, ms = 700, col) { B.labels.push({ u, text, col, until: pe
 function frame() {
   if ((mode === 'battle' || mode === 'scene') && B) {
     const now = performance.now(); B.labels = B.labels.filter((l) => now < l.until);
-    W3.render(highlights(), { sel: B.sel, cursor: B.hover, labels: B.labels });
+    if (!scene) W3.render(highlights(), { sel: B.sel, cursor: B.hover, labels: B.labels });
     if (scene) {
-      scene.t = (now - scene.t0) / 1000; drawBattle(bg2, scene); panels();
-      const k = Math.min(VW / BATTLE_SIZE.w, VH / BATTLE_SIZE.h), s = k >= 2 ? Math.floor(k) : k, w = BATTLE_SIZE.w * s, h = BATTLE_SIZE.h * s;
-      g.fillStyle = '#000'; g.fillRect(0, 0, VW, VH); g.drawImage(bat, Math.round((VW - w) / 2), Math.round((VH - h) / 2), w, h);
+      // the battle scene takes over the 3D view; the effects go on a canvas of the same small size, blown up
+      scene.t = (now - scene.t0) / 1000; const A = B3.render(scene); panels();
+      const { w, h } = W3.viewSize(); if (fx.width !== w || fx.height !== h) { fx.width = w; fx.height = h; }
+      drawBattleFx(fxg, scene, A);
+      g.clearRect(0, 0, VW, VH); g.imageSmoothingEnabled = false; g.drawImage(fx, 0, 0, w * PX, h * PX);
       cv.style.pointerEvents = 'auto';
     } else { g.clearRect(0, 0, VW, VH); cv.style.pointerEvents = 'none'; }
   } else { g.fillStyle = '#100e0c'; g.fillRect(0, 0, VW, VH); }
@@ -380,4 +383,4 @@ new ResizeObserver(resize).observe($('#stage'));
 document.documentElement.lang = prefs.lang === 'en' ? 'en' : 'zh-Hant';
 resize(); title(); requestAnimationFrame(frame);
 (async () => { try { cloud = await import('/save.js'); if (await cloud.pull(GAME, KEY) && mode === 'title') title(); } catch (e) { cloud = null; } })();
-window.IF = { W3, endBattle, get B() { return B; }, get S() { return S; }, set S(v) { S = v; }, sortie, tapTile, enemyTurn, attack, prefs, MISSIONS };
+window.IF = { W3, B3, weaponsOf, endBattle, get B() { return B; }, get S() { return S; }, set S(v) { S = v; }, sortie, tapTile, enemyTurn, attack, prefs, MISSIONS };

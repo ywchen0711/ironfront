@@ -268,6 +268,45 @@ export function drawBattle(g, sc) {
   for (const s of ['L', 'R']) if (sc.dead?.[s] && t > sc.deadAt) { const k = t - sc.deadAt, p = pos[s]; for (let j = 0; j < 7; j++) boom(g, p.x + Math.round(Math.sin(j * 2.3) * 22), base - 30 - Math.round(Math.cos(j * 1.7) * 30), 10 + j * 2, Math.min(1, Math.max(0, (k - j * 0.08) / 0.7))); }
   g.textAlign = 'left';
 }
+// the same effects over the 3D battle scene. A: screen points from battle3d.render; g: a transparent canvas
+// the size of the 3D view. k scales the effects with how big the machines are on screen.
+export function drawBattleFx(g, sc, A) {
+  const t = sc.t, k = A.unit / 68, z = (v) => Math.max(1, Math.round(v * k));
+  g.clearRect(0, 0, g.canvas.width, g.canvas.height);
+  for (const e of sc.events) {
+    if (e.cat === 'melee') continue;
+    const a = A[e.from], b = A[e.from === 'L' ? 'R' : 'L'], fly = e.cat === 'long' ? 0.55 : 0.14, dt = e.at - t; if (dt < 0 || dt > fly) continue;
+    const q = 1 - dt / fly, s0 = e.cat === 'long' ? a.launcher : a.muzzle, e0 = e.miss ? b.miss : b[e.part];
+    const at = (q2) => [Math.round(s0.x + (e0.x - s0.x) * q2), Math.round(s0.y + (e0.y - s0.y) * q2 - (e.cat === 'long' ? Math.sin(q2 * Math.PI) * 50 * k : 0))];
+    const [x, y] = at(q);
+    if (e.cat === 'long') {
+      // a missile with a smoke trail that thins out behind it
+      for (let j = 10; j >= 1; j--) { const [tx, ty] = at(Math.max(0, q - j * 0.03)), r = z(j < 3 ? 3 : j < 6 ? 2.5 : 2); g.fillStyle = j < 2 ? '#ffd040' : j < 4 ? '#c8b8a0' : j < 7 ? '#8a847c' : '#5a5650'; g.fillRect(tx - r / 2, ty - r / 2, r, r); }
+      g.fillStyle = '#100e0a'; g.fillRect(x - z(5), y - z(2), z(11), z(5)); g.fillStyle = '#c8c4b8'; g.fillRect(x - z(4), y - z(1), z(9), z(3)); g.fillStyle = '#e04030'; g.fillRect(x + a.f * z(4), y - z(1), z(1), z(3));
+    } else {
+      // a tracer, and a muzzle flash while it leaves the barrel
+      const dx = Math.sign(e0.x - s0.x) || a.f; g.fillStyle = '#fff4b0'; g.fillRect(x - z(4), y, z(8), z(1)); g.fillStyle = '#ffb040'; g.fillRect(x - dx * z(10), y, z(6), z(1));
+      if (q < 0.35) { g.fillStyle = '#fff4b0'; g.fillRect(s0.x - z(2), s0.y - z(2), z(5), z(5)); g.fillStyle = '#ffb040'; g.fillRect(s0.x + dx * z(3), s0.y - z(1), z(4), z(3)); g.fillRect(s0.x - z(1), s0.y - z(4), z(3), z(1)); g.fillRect(s0.x - z(1), s0.y + z(3), z(3), z(1)); }
+    }
+  }
+  // sparks and explosions where it hits, then the numbers
+  const fs = 8 * Math.max(1, Math.round(k * 0.6)); g.font = `${fs}px "Press Start 2P", monospace`; g.textBaseline = 'top'; g.textAlign = 'center';
+  for (const e of sc.events) {
+    const dt = t - e.at; if (dt < 0 || dt > 0.9) continue;
+    const b = A[e.from === 'L' ? 'R' : 'L'], p = e.miss ? b.miss : b[e.part];
+    if (!e.miss && dt < 0.3) boom(g, p.x + (e.n % 3 - 1) * z(4), p.y + (e.n % 2) * z(4), z(e.cat === 'long' ? 16 : e.cat === 'melee' ? 11 : 7), dt / 0.3);
+    if (!e.miss && dt < 0.4) sparks(g, p.x, p.y, z(1), dt / 0.4, e.n);
+    const tx = b.head.x + ((e.n % 5) - 2) * z(18), ty = b.head.y + z(4) - (e.n % 2) * z(10) - Math.round(dt * 24 * k), s = e.miss ? 'MISS' : `${e.dmg}`;
+    const o = Math.max(1, Math.round(fs / 8)); g.fillStyle = '#100e0a'; for (const [dx, dy] of [[-o, 0], [o, 0], [0, -o], [0, o]]) g.fillText(s, tx + dx, ty + dy);
+    g.fillStyle = e.miss ? '#c8d0d8' : e.broke ? '#ff7040' : '#ffe070'; g.fillText(s, tx, ty);
+  }
+  for (const s of ['L', 'R']) if (sc.dead?.[s] && t > sc.deadAt) { const q = t - sc.deadAt, p = A[s].body; for (let j = 0; j < 8; j++) boom(g, p.x + Math.round(Math.sin(j * 2.3) * 24 * k), p.y + z(10) - Math.round(Math.cos(j * 1.7) * 30 * k), z(10 + j * 2), Math.min(1, Math.max(0, (q - j * 0.08) / 0.7))); }
+  g.textAlign = 'left';
+}
+// hot fragments flying out of a hit
+function sparks(g, x, y, s, q, n) {
+  for (let j = 0; j < 7; j++) { const a = hash(j, n, 3) * Math.PI * 2, r = (6 + hash(n, j, 4) * 16) * s * q * 1.6; g.fillStyle = j % 2 ? '#ffe070' : '#ff9a30'; g.fillRect(Math.round(x + Math.cos(a) * r), Math.round(y + Math.sin(a) * r * 0.8 + q * q * 6 * s), s, s); }
+}
 // a pixel explosion: rings of hot colours that cool and break up
 function boom(g, x, y, r, k) {
   if (k <= 0 || k >= 1) return;
