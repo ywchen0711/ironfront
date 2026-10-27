@@ -1,2 +1,398 @@
-// placeholder
-export default { intro: null, m: {} };
+// Chapter 4 — Scorched Earth. Winter in the northern mountains. The Alliance burns what it leaves behind; the
+// squad frees a prison camp, survives the long night, and loses Pip. The Black Hound comes back.
+export default {
+  intro: {
+    zh: [
+      '【戰地通訊・艾莉絲・莫蘭】',
+      '山裡的雪下了三天三夜。士兵們說，在這裡，冷比子彈殺的人還多。',
+      '撤退的同盟軍隊留下了一道命令：不留下任何東西給敵人。房子、糧倉、橋、井。',
+      '我在一個燒毀的村子裡，看見一個女人把孩子的鞋子埋在雪裡，說等春天再回來找。',
+      '我沒有問她，春天的時候，她要去哪裡找這個村子。',
+    ],
+    en: [
+      '[Dispatch — Elise Moran, war correspondent]',
+      'It has snowed in the mountains for three days and three nights. The soldiers say that up here the cold kills more men than bullets do.',
+      'The retreating Alliance left an order behind it: leave nothing for the enemy. Not a house, not a barn, not a bridge, not a well.',
+      'In a burnt village I watched a woman bury her child’s shoes in the snow, saying she would come back for them in spring.',
+      'I did not ask her where, come spring, she would look for the village.',
+    ],
+  },
+  m: {
+    c4m1: {
+      brief: {
+        zh: [
+          '山腳下的第一個村子。雪已經下到小腿那麼深。',
+          '洛恩|雪地每走一步都很吃力，移動會比平常慢。規劃好路線。',
+          '皮普|好冷……駕駛艙的暖氣壞了。',
+          '卡爾|把手放在腋下。別放在操縱桿上，會凍住。',
+          '葛蕾塔|戰車在雪地上還好。履帶比腳可靠。',
+          '洛恩|全部擊毀，在天黑前進村。',
+        ],
+        en: [
+          'The first village at the foot of the mountains. The snow is already calf-deep.',
+          'Ron|Every step in snow is hard work — you’ll move slower than usual. Plan your routes.',
+          'Pip|So cold… the cockpit heater’s broken.',
+          'Karl|Put your hands under your arms. Not on the stick — they’ll freeze to it.',
+          'Greta|Tanks do all right in snow. Treads are more reliable than feet.',
+          'Ron|Destroy them all and get into the village before dark.',
+        ],
+      },
+      after: {
+        zh: [
+          '村子是空的。煙囪還在冒煙，桌上的湯還是溫的。',
+          '米雅|村民逃走了……一個小時前還有人在這裡吃飯。',
+          '伊沃|根據湯的溫度，他們離開不超過五十分鐘。',
+          '皮普|伊沃先生，你什麼都要算嗎？',
+          '伊沃|算數的時候，我就不用想別的事情。',
+        ],
+        en: [
+          'The village is empty. Smoke still rises from the chimneys; the soup on the table is still warm.',
+          'Mia|The villagers ran… an hour ago people were eating here.',
+          'Ivo|Judging by the temperature of the soup, they left no more than fifty minutes ago.',
+          'Pip|Mr Ivo, do you have to calculate everything?',
+          'Ivo|When I’m calculating, I don’t have to think about anything else.',
+        ],
+      },
+    },
+    c4m2: {
+      brief: {
+        zh: [
+          '山谷裡的村莊正在燃燒。同盟的焦土部隊在逐戶放火。',
+          '艾莉絲|村子的信號塔還在運作。只要它不倒，山裡的救援隊就能找到逃出來的村民。',
+          '洛恩|守住信號塔七個回合。',
+          '莉娜|放火的部隊裡……有人在猶豫。我在無線電裡聽見他們在吵架。',
+          '無線電（同盟）|這是命令！燒！……我不要！我媽媽住在隔壁村！',
+          '洛恩|……不是所有人都想打這場仗。但我們沒有時間等他們想清楚。',
+        ],
+        en: [
+          'A village in the valley is burning. Alliance scorched-earth troops are setting fire to it house by house.',
+          'Elise|The village’s signal tower is still working. As long as it stands, the mountain rescue teams can find the villagers who got out.',
+          'Ron|Hold the signal tower for seven turns.',
+          'Lena|Among the burning parties… some are hesitating. I can hear them arguing on the radio.',
+          'Radio (Alliance)|It’s an order! Burn it! …I won’t! My mother lives in the next village!',
+          'Ron|…Not everyone wants to fight this war. But we have no time to wait for them to make up their minds.',
+        ],
+      },
+      after: {
+        zh: [
+          '信號塔還立著。救援隊的燈光沿著山路一盞一盞亮起來。',
+          '一架同盟的機體放下武器，從燃燒的街道上走出來。駕駛員舉著雙手。',
+          '同盟士兵|我……我不想再燒了。讓我跟救援隊走吧。',
+          '洛恩|走吧。不要回頭。',
+          '杜克|你就這樣放他走了？',
+          '洛恩|他今天救了一個村子。這比我們做的還多。',
+        ],
+        en: [
+          'The signal tower still stands. One by one, the rescue teams’ lamps light up along the mountain road.',
+          'An Alliance machine lays down its weapons and walks out of the burning street, its pilot holding up both hands.',
+          'Alliance soldier|I… I don’t want to burn any more. Let me go with the rescue teams.',
+          'Ron|Go. Don’t look back.',
+          'Duke|You’re just letting him go?',
+          'Ron|Today he saved a village. That’s more than we did.',
+        ],
+      },
+    },
+    c4m3: {
+      brief: {
+        zh: [
+          '通往北方的山口被濃霧籠罩。同盟的部隊在兩側的山脊上埋伏。',
+          '洛恩|只要有一架機體穿過山口，抵達北邊的綠色區域，主力部隊就能跟上。',
+          '莉娜|霧裡遠距離很難命中。他們也看不清楚我們。這是優勢，也是危險。',
+          '蒼|霧太濃了。我飛低一點。',
+          '伊沃|他們有自走砲。砲彈會從霧裡落下來，沒有預警。',
+          '洛恩|不要停下來。一直往前。',
+        ],
+        en: [
+          'The pass to the north lies under thick fog. Alliance troops wait in ambush on the ridges to either side.',
+          'Ron|Get one machine through the pass into the green zone to the north and the main force can follow.',
+          'Lena|In fog, long shots rarely hit. They can’t see us well either. That’s an advantage and a danger.',
+          'Sora|The fog is too thick. I’ll fly lower.',
+          'Ivo|They have self-propelled guns. Shells will come down out of the fog with no warning.',
+          'Ron|Don’t stop. Keep going forward.',
+        ],
+      },
+      after: {
+        zh: [
+          '鐵鴉穿過了山口。霧散開的時候，北邊的雪原一望無際。',
+          '皮普|好白……白得什麼都沒有。',
+          '葛蕾塔|雪原上沒有掩護。接下來的仗會很難打。',
+          '米雅|氣象預報說，明天有暴風雪……山上可能會雪崩。',
+        ],
+        en: [
+          'The Ravens are through the pass. When the fog lifts, the snowfields to the north stretch as far as the eye can see.',
+          'Pip|So white… white with nothing in it at all.',
+          'Greta|There’s no cover on a snowfield. The fighting from here on will be hard.',
+          'Mia|The forecast says there’s a blizzard tomorrow… there may be avalanches on the slopes.',
+        ],
+      },
+    },
+    c4m4: {
+      brief: {
+        zh: [
+          '暴風雪來了。山坡上的積雪崩落，切斷了退路。',
+          '洛恩|我們被困住了。同盟的部隊趁著暴風雪包圍過來。',
+          '洛恩|撐住六個回合，等暴風雪過去，增援就會到。',
+          '伊沃|雪崩的路線我算過了。我們站的位置是安全的……大概。',
+          '卡爾|「大概」。我最喜歡你說「大概」了。',
+          '皮普|直、直升機也來了！',
+        ],
+        en: [
+          'The blizzard is here. Snow sliding off the slopes has cut off the way back.',
+          'Ron|We’re trapped. The Alliance is using the blizzard to close in around us.',
+          'Ron|Hold for six turns. When the storm passes, reinforcements will come.',
+          'Ivo|I’ve calculated the avalanche paths. Where we are standing is safe… probably.',
+          'Karl|"Probably". I just love it when you say "probably".',
+          'Pip|H-helicopters too!',
+        ],
+      },
+      after: {
+        zh: [
+          '暴風雪停了。雪地上安靜得可怕。',
+          '皮普|……我剛才好害怕。我以為我會死在這裡。',
+          '葛蕾塔|害怕很正常。不害怕的人才會死。',
+          '皮普|葛蕾塔上尉也會害怕嗎？',
+          '葛蕾塔|每一天。',
+        ],
+        en: [
+          'The blizzard has stopped. The snow is frighteningly quiet.',
+          'Pip|…I was so scared just now. I thought I was going to die here.',
+          'Greta|Being scared is normal. It’s the ones who aren’t scared who die.',
+          'Pip|Do you get scared, Captain Greta?',
+          'Greta|Every day.',
+        ],
+      },
+    },
+    c4m5: {
+      brief: {
+        zh: [
+          '偵察發現雪原深處有一座戰俘營。裡面關著聯合的士兵，也關著拒絕作戰的同盟士兵。',
+          '莉娜|拒絕放火的人、拒絕開槍的人……同盟把他們跟敵人關在一起。',
+          '洛恩|摧毀三座守衛塔，營地的守軍就會崩潰。',
+          '米雅|是夜裡……小心不要打到營房！',
+          '艾莉絲|我想進去採訪他們。那些不肯開槍的人。',
+          '洛恩|先讓他們活著出來。',
+        ],
+        en: [
+          'Recon finds a prison camp deep in the snowfields. It holds Union soldiers — and Alliance soldiers who refused to fight.',
+          'Lena|The ones who refused to set fires, refused to shoot… the Alliance locks them up together with the enemy.',
+          'Ron|Destroy the three guard towers and the camp’s garrison will fall apart.',
+          'Mia|It’s night… careful not to hit the barracks!',
+          'Elise|I want to go in and talk to them. The ones who wouldn’t shoot.',
+          'Ron|First, let’s get them out alive.',
+        ],
+      },
+      after: {
+        zh: [
+          '營門打開了。幾百個人走出來，在雪地上排成長長的一列。',
+          '一位老同盟士兵握住艾莉絲的手。',
+          '老兵|小姐，請你寫下來：我們不是叛徒。我們只是不想殺人。',
+          '艾莉絲|我會寫。我保證。',
+          '卡爾|這些人……跟我們打了三年仗的人。原來也一樣想回家。',
+        ],
+        en: [
+          'The camp gates open. Hundreds of people walk out and form a long line across the snow.',
+          'An old Alliance soldier takes Elise’s hand.',
+          'Old soldier|Miss, please write it down: we are not traitors. We just didn’t want to kill.',
+          'Elise|I’ll write it. I promise.',
+          'Karl|These people… the ones we’ve been fighting for three years. Turns out they want to go home too.',
+        ],
+      },
+    },
+    c4m6: {
+      brief: {
+        zh: [
+          '從戰俘營救出的人需要藥品和食物。補給卡車要穿過雪原送過來。',
+          '洛恩|護送卡車抵達北邊的綠色區域。卡車被擊毀，這些人就撐不過這個冬天。',
+          '葛蕾塔|雪地上卡車很慢。我們要慢慢推進，不要讓它落單。',
+          '皮普|我來保護卡車！我會跟在它旁邊！',
+          '卡爾|跟在旁邊可以，別擋在它前面當靶子。',
+        ],
+        en: [
+          'The people freed from the camp need medicine and food. A supply truck has to cross the snowfields to bring them.',
+          'Ron|Escort the truck to the green zone in the north. If the truck is destroyed, these people won’t survive the winter.',
+          'Greta|A truck is slow in snow. We push forward slowly — don’t leave it on its own.',
+          'Pip|I’ll protect the truck! I’ll stay right next to it!',
+          'Karl|Next to it is fine. Don’t stand in front of it like a target.',
+        ],
+      },
+      after: {
+        zh: [
+          '卡車抵達了。藥箱被一個一個搬下來。',
+          '皮普|看！我做到了！一槍都沒有打中卡車！',
+          '葛蕾塔|……做得好，皮普。',
+          '皮普|葛蕾塔上尉第一次稱讚我！',
+          '米雅|皮普，你的臉都凍紅了。',
+          '皮普|是高興的紅！',
+        ],
+        en: [
+          'The truck arrives. The medicine crates are carried down one by one.',
+          'Pip|Look! I did it! Not one shot hit the truck!',
+          'Greta|…Well done, Pip.',
+          'Pip|That’s the first time Captain Greta’s praised me!',
+          'Mia|Pip, your face is red with cold.',
+          'Pip|It’s happy red!',
+        ],
+      },
+    },
+    c4m7: {
+      brief: {
+        zh: [
+          '雪林裡，同盟的一支部隊在撤退途中停了下來。他們是最後的後衛。',
+          '洛恩|擊毀所有敵人。這片森林過去，就是同盟的冬季防線。',
+          '皮普|洛恩隊長，等戰爭結束，我想去南邊看海。我從來沒看過海。',
+          '蒼|海是銀色的。你會喜歡的。',
+          '皮普|嗯！蒼答應要教我認星星的！',
+          '葛蕾塔|……專心作戰，皮普。',
+        ],
+        en: [
+          'In the snowy forest, an Alliance unit has halted on its retreat. They are the last of the rearguard.',
+          'Ron|Destroy every enemy. Beyond this forest lies the Alliance’s winter line.',
+          'Pip|Captain Ron, when the war is over I want to go south and see the sea. I’ve never seen the sea.',
+          'Sora|The sea is silver. You will like it.',
+          'Pip|Yes! Sora promised to teach me the stars!',
+          'Greta|…Keep your mind on the fight, Pip.',
+        ],
+      },
+      after: {
+        zh: [
+          '戰鬥結束了。森林裡安靜下來，雪又開始飄落。',
+          '一架倒在雪中的同盟機體，駕駛艙裡的人還沒有斷氣。他的手指扣在扳機上。',
+          '最後一發子彈。',
+          '皮普擋在了葛蕾塔前面。',
+          '葛蕾塔|皮普！……皮普！醫護兵！',
+          '皮普|……葛蕾塔上尉……我……沒有害怕……',
+          '皮普|……海……是……銀色的……對吧……',
+          '那天的前線報告只有一行：「北方戰線，今日無重大戰事。」',
+        ],
+        en: [
+          'The fighting is over. The forest falls quiet, and the snow begins to fall again.',
+          'In an Alliance machine lying in the snow, the pilot is not yet dead. His finger is on the trigger.',
+          'One last bullet.',
+          'Pip steps in front of Greta.',
+          'Greta|Pip! …Pip! Medic!',
+          'Pip|…Captain Greta… I… wasn’t scared…',
+          'Pip|…the sea… is… silver… isn’t it…',
+          'That day’s report from the front was a single line: "Northern front. Nothing of note today."',
+        ],
+      },
+    },
+    c4m8: {
+      brief: {
+        zh: [
+          '皮普的機體留在了雪林裡。沒有人提起他的名字，但每個人都在想。',
+          '葛蕾塔|……下一個任務是什麼。',
+          '洛恩|同盟的冬季防線。山上全是雪，他們有戰車、直升機和防空車。',
+          '洛恩|全部擊毀。',
+          '葛蕾塔|全部。',
+          '卡爾|葛蕾塔，別一個人衝在前面。',
+          '葛蕾塔|我不會死。我還有事情沒做完。',
+        ],
+        en: [
+          'Pip’s machine stays behind in the snowy forest. Nobody says his name, but everyone is thinking it.',
+          'Greta|…What’s the next mission.',
+          'Ron|The Alliance winter line. The mountains are deep in snow, and they have tanks, helicopters and anti-air vehicles.',
+          'Ron|Destroy them all.',
+          'Greta|All of them.',
+          'Karl|Greta, don’t charge out front alone.',
+          'Greta|I won’t die. I have things left to do.',
+        ],
+      },
+      after: {
+        zh: [
+          '防線崩潰了。雪地上到處是燃燒的殘骸。',
+          '葛蕾塔把一張照片放進駕駛艙的儀表板縫隙裡。照片上是一個跟皮普差不多大的少年。',
+          '米雅|那是……你兒子？',
+          '葛蕾塔|他在第一次停火前一個月陣亡。十八歲。',
+          '葛蕾塔|皮普說他十八歲。他其實是十七歲。我一開始就知道。',
+        ],
+        en: [
+          'The line has collapsed. Burning wreckage lies everywhere on the snow.',
+          'Greta slips a photograph into a gap in her instrument panel. It shows a boy about Pip’s age.',
+          'Mia|Is that… your son?',
+          'Greta|He was killed a month before the first ceasefire. Eighteen.',
+          'Greta|Pip said he was eighteen. He was really seventeen. I knew from the start.',
+        ],
+      },
+    },
+    c4m9: {
+      brief: {
+        zh: [
+          '北方的冬夜很長。太陽下午三點就落下，第二天早上十點才會升起。',
+          '洛恩|同盟要趁夜反攻。我們守住這座山頭，撐過八個回合，等到天亮。',
+          '伊沃|夜間命中下降，加上增援會一波一波來。修理包省著用。',
+          '莉娜|這是最長的一夜。',
+          '蒼|夜裡的星星很多。皮普……本來要學認星星的。',
+          '洛恩|……那我們就一起撐到天亮，替他看看太陽。',
+        ],
+        en: [
+          'Winter nights in the north are long. The sun sets at three in the afternoon and doesn’t rise until ten the next morning.',
+          'Ron|The Alliance means to counterattack under cover of night. We hold this hilltop for eight turns, until dawn.',
+          'Ivo|Accuracy drops at night, and the reinforcements will come in waves. Go easy on the repair kits.',
+          'Lena|This is the longest night.',
+          'Sora|There are many stars tonight. Pip… was going to learn the stars.',
+          'Ron|…Then we hold out together until dawn, and see the sun for him.',
+        ],
+      },
+      after: {
+        zh: [
+          '天亮了。太陽從雪原的盡頭升起，把整座山染成金色。',
+          '卡爾|……還活著。都還活著。',
+          '伊沃|全員存活。在這種條件下，機率大約是百分之十一。',
+          '蒼|那顆最亮的星星，天亮之前一直在。我想那是皮普。',
+          '米雅|……嗯。',
+        ],
+        en: [
+          'Dawn. The sun rises at the far edge of the snowfields and turns the whole mountain gold.',
+          'Karl|…Still alive. All of us, still alive.',
+          'Ivo|Everyone survived. Under these conditions the odds were about eleven percent.',
+          'Sora|The brightest star stayed until just before dawn. I think it was Pip.',
+          'Mia|…Mm.',
+        ],
+      },
+    },
+    c4m10: {
+      brief: {
+        zh: [
+          '冬季防線的最後一道關卡，在晴朗的山頂上。一架黑色的機體站在雪地中央。',
+          '黑犬|（公開頻道）鐵鴉。又見面了。',
+          '黑犬|我收到命令：在這裡拖住你們，直到春天。下命令的人，不在同盟的司令部裡。',
+          '莉娜|那是誰？',
+          '黑犬|打贏我，我就告訴你。',
+          '洛恩|目標：黑犬。他是同盟最強的王牌，別單獨跟他對打。',
+          '米雅|他的格鬥武器很可怕！保持距離，從側面集中火力！',
+        ],
+        en: [
+          'The last gate of the winter line stands on a clear mountaintop. A black machine waits in the middle of the snow.',
+          'Black Hound|(open channel) Iron Ravens. We meet again.',
+          'Black Hound|I have orders: hold you here until spring. The ones who gave them are not in the Alliance high command.',
+          'Lena|Then who?',
+          'Black Hound|Beat me and I will tell you.',
+          'Ron|Target: the Black Hound. He is the Alliance’s best ace — don’t take him on one to one.',
+          'Mia|His melee weapons are terrifying! Keep your distance and concentrate fire from the flanks!',
+        ],
+      },
+      after: {
+        zh: [
+          '黑犬的機體單膝跪在雪地上，冒著黑煙。',
+          '黑犬|……我輸了。約定就是約定。',
+          '黑犬|我的命令來自維爾格勒的一間辦公室。那間辦公室不屬於同盟，也不屬於聯合。',
+          '黑犬|門牌上寫著：奧林重工・戰略顧問部。',
+          '艾莉絲|……戰略顧問部。',
+          '黑犬|我會撤退。但不是為了同盟。我要親眼看看，我替誰打了這些年的仗。',
+          '洛恩|聯合司令部的命令：進攻同盟首都維爾格勒。',
+          '洛恩|……那也正好是我們要去的地方。',
+        ],
+        en: [
+          'The Black Hound’s machine kneels on one knee in the snow, pouring black smoke.',
+          'Black Hound|…I have lost. A promise is a promise.',
+          'Black Hound|My orders came from an office in Velgrad. An office that belongs neither to the Alliance nor to the Union.',
+          'Black Hound|The plate on its door reads: Orrin Heavy Industries — Strategic Advisory Division.',
+          'Elise|…Strategic Advisory Division.',
+          'Black Hound|I will fall back. But not for the Alliance. I want to see for myself whom I have been fighting for all these years.',
+          'Ron|Orders from Union command: attack the Alliance capital, Velgrad.',
+          'Ron|…Which happens to be exactly where we were going.',
+        ],
+      },
+    },
+  },
+};

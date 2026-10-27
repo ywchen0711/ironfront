@@ -2,8 +2,8 @@
 // as soft blobs of noise, roads that join the two sides, a river with bridges, a town of blocks, a fortress wall.
 // Every map is checked: the squad's corner and the enemy's are clear, and a ground machine can get from one to
 // the other. Then the enemy, the things to protect or destroy, and the reinforcements are placed.
-import { ITEM, ALL_ITEMS, TERRAIN, PILOTS } from './data.js?v=15';
-import { VSLOT, DRIVE_OF } from './rules.js?v=15';
+import { ITEM, ALL_ITEMS, TERRAIN, PILOTS } from './data.js?v=16';
+import { VSLOT, DRIVE_OF } from './rules.js?v=16';
 
 export function rng(seed) { let s = (seed * 2654435761) >>> 0 || 1; return () => { s ^= s << 13; s >>>= 0; s ^= s >> 17; s ^= s << 5; s >>>= 0; return s / 4294967296; }; }
 const pick = (R, a) => a[Math.floor(R() * a.length)];
@@ -11,19 +11,19 @@ const pick = (R, a) => a[Math.floor(R() * a.length)];
 // ---------------------------------------------------------------- terrain
 // for each setting: the ground, and how much of each feature (0-1)
 const THEME = {
-  plains: { base: '.', forest: 0.12, hills: 0.1, rubble: 0.03, road: 1, town: 0.15 },
-  forest: { base: '.', forest: 0.42, hills: 0.12, rubble: 0.02, road: 0.6 },
+  plains: { base: '.', forest: 0.12, hills: 0.1, rubble: 0.012, road: 1, town: 0.15 },
+  forest: { base: '.', forest: 0.42, hills: 0.12, rubble: 0.008, road: 0.6 },
   hills: { base: '.', forest: 0.1, hills: 0.35, high: 0.12, road: 0.7 },
-  city: { base: ',', town: 1, rubble: 0.08, road: 1.4 },
-  harbor: { base: ',', sea: 'top', town: 0.5, rubble: 0.05, road: 1 },
+  city: { base: ',', town: 1, rubble: 0.025, road: 1.4 },
+  harbor: { base: ',', sea: 'top', town: 0.5, rubble: 0.015, road: 1 },
   coast: { base: '.', sea: 'side', forest: 0.1, hills: 0.1, road: 0.6, sand: 0.18 },
   snow: { base: 'c', forest: 0.12, hills: 0.25, high: 0.08, road: 0.5 },
-  desert: { base: 'd', hills: 0.18, rubble: 0.06, road: 0.5, sandy: true },
+  desert: { base: 'd', hills: 0.18, rubble: 0.02, road: 0.5, sandy: true },
   river: { base: '.', river: true, forest: 0.18, hills: 0.08, road: 0.8 },
   fortress: { base: '.', walls: true, hills: 0.14, forest: 0.06, road: 1 },
-  airfield: { base: ',', strip: true, rubble: 0.05, town: 0.2, road: 0.8 },
+  airfield: { base: ',', strip: true, rubble: 0.015, town: 0.2, road: 0.8 },
   mountain: { base: '.', hills: 0.6, high: 0.3, forest: 0.12, road: 0.5 },
-  industrial: { base: ',', town: 0.6, rubble: 0.12, road: 1.2 },
+  industrial: { base: ',', town: 0.6, rubble: 0.035, road: 1.2 },
 };
 export const THEMES = Object.keys(THEME);
 // smooth noise: a few random bumps added up

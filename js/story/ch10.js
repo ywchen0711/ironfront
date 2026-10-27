@@ -1,2 +1,400 @@
-// placeholder
-export default { intro: null, m: {} };
+// Chapter 10 — Iron Souls. The coalition storms Mount Thessa and the Ark. Elise broadcasts the truth to the world;
+// the Ravens reach the core and face Halden. The war ends, and the epilogue counts what it cost.
+export default {
+  intro: {
+    zh: [
+      '【戰地通訊・艾莉絲・莫蘭】',
+      '明天，聯軍要進攻塞薩山。我問洛恩，他怕不怕。',
+      '他說：「我怕的不是死。我怕的是，打完這一仗，戰爭還是會用別的名字繼續下去。」',
+      '我想了很久。也許戰爭從來就不是被一場戰鬥結束的。它是被記得它的人結束的。',
+      '所以我會寫下來。每一個名字。',
+    ],
+    en: [
+      '[Dispatch — Elise Moran, war correspondent]',
+      'Tomorrow the coalition attacks Mount Thessa. I asked Ron whether he was afraid.',
+      'He said: "It isn’t dying I’m afraid of. I’m afraid that when this fight is over, the war will just go on under another name."',
+      'I thought about that for a long time. Perhaps a war is never ended by a battle. It is ended by the people who remember it.',
+      'So I will write it down. Every name.',
+    ],
+  },
+  m: {
+    c10m1: {
+      brief: {
+        zh: [
+          '塞薩山的山腳。聯軍的機體排滿了整片山坡。',
+          '洛恩|鐵鴉打頭陣。目標是山腰的奧林防線。全部擊毀。',
+          '黑犬|奧林的部隊已經沒有退路了。沒有退路的人，打起來最兇。',
+          '葛蕾塔|我們也沒有退路。',
+          '卡爾|那就看誰比較兇。',
+          '米雅|大家……一定要活著回來喔。',
+        ],
+        en: [
+          'The foot of Mount Thessa. Coalition machines cover the whole slope.',
+          'Ron|The Ravens lead. The target is the Orrin line halfway up the mountain. Destroy them all.',
+          'Black Hound|Orrin’s troops have nowhere left to run. Men with nowhere to run fight the hardest.',
+          'Greta|Neither do we.',
+          'Karl|Then let’s see who fights harder.',
+          'Mia|Everyone… you have to come back alive, okay?',
+        ],
+      },
+      after: {
+        zh: [
+          '山腰的防線被突破了。山頂的積雪在砲火中閃閃發光。',
+          '伊沃|根據我的計算，到方舟的核心，還要突破六道防線。',
+          '安雅|你每次都要說出來嗎？',
+          '伊沃|知道還剩多少，比較不會絕望。',
+        ],
+        en: [
+          'The line halfway up is broken. The snow on the summit glitters in the gunfire.',
+          'Ivo|By my calculations, there are six more lines between us and the Ark’s core.',
+          'Anya|Do you have to say it out loud every time?',
+          'Ivo|Knowing how much is left makes it harder to despair.',
+        ],
+      },
+    },
+    c10m2: {
+      brief: {
+        zh: [
+          '雪線以上。風雪中，方舟的閘門就在山頂。',
+          '洛恩|讓任意一架機體衝過雪原，抵達北邊的綠色區域——方舟的外牆。',
+          '蒼|雪裡飛行很冷。但我想看看山頂的天空。',
+          '托馬斯|有防空車。蒼，等我。',
+          '黑犬|我開路。這一次，跟在我後面吧。',
+        ],
+        en: [
+          'Above the snowline. Through the wind and snow, the Ark’s blast door waits at the summit.',
+          'Ron|Get any one machine across the snowfield into the green zone to the north — the Ark’s outer wall.',
+          'Sora|Flying in snow is cold. But I want to see the sky at the summit.',
+          'Tomas|There’s an anti-air vehicle. Sora, wait for me.',
+          'Black Hound|I will open the way. This time, stay behind me.',
+        ],
+      },
+      after: {
+        zh: [
+          '鐵鴉抵達了方舟的外牆。巨大的鋼鐵牆壁一直延伸到雲裡。',
+          '歐文|外牆上有三座主砲塔。不打掉它們，聯軍的主力上不來。',
+          '卡爾|又是三個。奧林是不是只會數到三？',
+        ],
+        en: [
+          'The Ravens reach the Ark’s outer wall. The enormous steel wall stretches up into the clouds.',
+          'Owen|There are three main gun turrets on the outer wall. Unless they go, the coalition’s main force can’t get up here.',
+          'Karl|Three again. Can Orrin only count to three?',
+        ],
+      },
+    },
+    c10m3: {
+      brief: {
+        zh: [
+          '方舟的外牆。三座主砲塔正在向山下的聯軍開火。',
+          '洛恩|摧毀三個目標。',
+          '伊沃|主砲塔的射角打不到正下方。貼近它們。',
+          '葛蕾塔|戰車上不了城牆。我在下面掩護。',
+          '黑犬|城牆上有奧林最後的精銳。小心。',
+        ],
+        en: [
+          'The Ark’s outer wall. Three main gun turrets are firing on the coalition below the mountain.',
+          'Ron|Destroy the three targets.',
+          'Ivo|The main guns can’t depress far enough to hit directly beneath them. Get in close.',
+          'Greta|Tanks can’t get up on the wall. I’ll cover you from below.',
+          'Black Hound|The last of Orrin’s elite are on that wall. Be careful.',
+        ],
+      },
+      after: {
+        zh: [
+          '主砲塔一座接一座地沉默了。山下傳來聯軍的歡呼聲。',
+          '方舟的閘門緩緩打開——不是投降，而是要出擊。',
+          '歐文|方舟的甲板上……全是無人機甲。它們不會投降，也不會撤退。',
+          '洛恩|那就一架一架打掉。',
+        ],
+        en: [
+          'One after another the main turrets fall silent. Cheering rises from the coalition below.',
+          'The Ark’s blast door slowly opens — not to surrender, but to sortie.',
+          'Owen|The Ark’s deck… is covered with unmanned wanzers. They won’t surrender, and they won’t retreat.',
+          'Ron|Then we take them down one at a time.',
+        ],
+      },
+    },
+    c10m4: {
+      brief: {
+        zh: [
+          '方舟的甲板。一片廣闊的鋼鐵平原，上面站滿了奧林的機體。',
+          '洛恩|全部擊毀。',
+          '米雅|無人機甲的動作很規律……它們只會照程式行動！',
+          '黑犬|機器不會猶豫，但機器也不會應變。從它們想不到的方向進攻。',
+          '安雅|背後。總是背後。',
+        ],
+        en: [
+          'The deck of the Ark. A vast steel plain, crowded with Orrin machines.',
+          'Ron|Destroy them all.',
+          'Mia|The unmanned wanzers move in patterns… they only do what their programs say!',
+          'Black Hound|A machine never hesitates, but it never improvises either. Attack from where they do not expect.',
+          'Anya|From behind. Always from behind.',
+        ],
+      },
+      after: {
+        zh: [
+          '甲板上的無人機甲全部倒下了。它們的眼睛一個接一個地熄滅。',
+          '卡爾|看著它們倒下……一點感覺都沒有。',
+          '洛恩|這就是奧林想要的戰爭。沒有人會痛，所以永遠不會停。',
+          '托馬斯|方舟周圍還有一圈防空網。不打掉它們，聯軍的直升機就進不來。',
+        ],
+        en: [
+          'Every unmanned wanzer on the deck is down. One after another, their eyes go dark.',
+          'Karl|Watching them fall… I don’t feel a thing.',
+          'Ron|That is the war Orrin wants. Nobody gets hurt, so it never stops.',
+          'Tomas|There’s a ring of air defences round the Ark. Unless they go, the coalition’s helicopters can’t get in.',
+        ],
+      },
+    },
+    c10m5: {
+      brief: {
+        zh: [
+          '方舟側翼的停機坪。夜空中，防空砲的曳光彈像紅色的雨。',
+          '洛恩|摧毀三個目標——防空網的控制站。',
+          '托馬斯|這些防空系統，是我設計的。我知道它們的死角。',
+          '蒼|托馬斯，帶我去死角。',
+          '托馬斯|跟緊我。',
+        ],
+        en: [
+          'The landing pads on the Ark’s flank. In the night sky, flak tracers fall like red rain.',
+          'Ron|Destroy the three targets — the control stations of the air defence net.',
+          'Tomas|I designed these air defences. I know their blind spots.',
+          'Sora|Tomas, take me to the blind spots.',
+          'Tomas|Stay close.',
+        ],
+      },
+      after: {
+        zh: [
+          '防空網崩潰了。聯軍的直升機像一群歸巢的鳥，湧進方舟的上空。',
+          '托馬斯|……我花了三年設計的東西，今天晚上親手拆掉了。',
+          '蒼|你後悔嗎？',
+          '托馬斯|不。這是我設計過最好的一次拆除。',
+        ],
+        en: [
+          'The air defence net collapses. The coalition’s helicopters pour into the sky above the Ark like birds coming home to roost.',
+          'Tomas|…Three years designing it, and tonight I took it apart with my own hands.',
+          'Sora|Do you regret it?',
+          'Tomas|No. That was the best demolition I ever designed.',
+        ],
+      },
+    },
+    c10m6: {
+      brief: {
+        zh: [
+          '方舟的引擎室。巨大的活塞上下運動，整座要塞在震動。',
+          '歐文|方舟要起飛了——它要移動到外海，到了國際水域就沒人能碰它了。',
+          '歐文|我需要七個回合，在引擎的控制台上植入停機程式。',
+          '洛恩|撐住七個回合。保護歐文。',
+          '伊沃|引擎室裡的敵人會一波一波上來。這是最後的消耗戰。',
+          '葛蕾塔|那就耗吧。我們最擅長的，就是撐住。',
+        ],
+        en: [
+          'The Ark’s engine room. Giant pistons pump up and down; the whole fortress shudders.',
+          'Owen|The Ark is about to move — out to open sea. Once it reaches international waters, nobody can touch it.',
+          'Owen|I need seven turns at the engine console to plant a shutdown program.',
+          'Ron|Hold for seven turns. Protect Owen.',
+          'Ivo|The enemy in the engine room will come in waves. This is the last battle of attrition.',
+          'Greta|Then let’s wear them down. Holding on is the thing we do best.',
+        ],
+      },
+      after: {
+        zh: [
+          '引擎的活塞停了下來。方舟發出一聲長長的嘆息，再也沒有移動。',
+          '歐文|停機程式啟動了。方舟哪裡都去不了了。',
+          '哈爾登|（全頻道廣播）……你們以為停住了方舟，就能停住戰爭？',
+          '哈爾登|世界上有一百場戰爭。每一場，都需要武器。方舟只是個開始。',
+          '艾莉絲|那我就讓全世界知道，這些武器是怎麼來的。',
+        ],
+        en: [
+          'The engine’s pistons stop. The Ark gives a long sigh and moves no more.',
+          'Owen|The shutdown program is running. The Ark can’t go anywhere now.',
+          'Halden|(all-channel broadcast) …You think stopping the Ark stops the war?',
+          'Halden|There are a hundred wars in the world. Every one of them needs weapons. The Ark is only the beginning.',
+          'Elise|Then I’ll let the whole world know where those weapons come from.',
+        ],
+      },
+    },
+    c10m7: {
+      brief: {
+        zh: [
+          '塞薩山下的小鎮。艾莉絲在鎮上的電視台裡，準備把方舟的全部資料播送到全世界。',
+          '艾莉絲|這一次，不只是艾瑞斯島。我已經聯絡上十二個國家的電視台。',
+          '米雅|奧林的部隊從山上衝下來了！他們想阻止廣播！',
+          '洛恩|守住電視台七個回合。這是艾莉絲的戰鬥。我們替她擋子彈。',
+          '艾莉絲|洛恩，你還記得嗎？你說我欠你一篇報導。',
+          '洛恩|這篇就算還了。',
+        ],
+        en: [
+          'A small town at the foot of Mount Thessa. In the town’s TV station, Elise is ready to broadcast all of the Ark’s data to the world.',
+          'Elise|This time it isn’t just Ares Island. I’ve reached TV stations in twelve countries.',
+          'Mia|Orrin troops are charging down the mountain! They want to stop the broadcast!',
+          'Ron|Hold the station for seven turns. This is Elise’s fight. We take the bullets for her.',
+          'Elise|Ron, do you remember? You said I owed you a story.',
+          'Ron|This one makes us even.',
+        ],
+      },
+      after: {
+        zh: [
+          '廣播播出去了。這一次，沒有任何人能夠切斷它。',
+          '世界各地的螢幕上，出現了常青計畫的文件、塞林港的照片、試驗場的靶子。',
+          '艾莉絲|（廣播）我叫艾莉絲・莫蘭。這是艾瑞斯島的真相。',
+          '艾莉絲|戰爭不是天災。戰爭是有人在賺錢的生意。而我們，有權利拒絕購買。',
+          '一個小時後，奧林重工在全世界的股票停止交易。',
+          '洛恩|現在，只剩下一個人了。',
+        ],
+        en: [
+          'The broadcast goes out. This time nobody can cut it off.',
+          'On screens all over the world appear the Evergreen documents, the photographs from Selin, the targets on the proving ground.',
+          'Elise|(broadcast) My name is Elise Moran. This is the truth about Ares Island.',
+          'Elise|War is not a natural disaster. War is a business, and somebody is making money from it. And we have the right to refuse to buy.',
+          'An hour later, trading in Orrin Heavy Industries shares is suspended around the world.',
+          'Ron|Now there is only one man left.',
+        ],
+      },
+    },
+    c10m8: {
+      brief: {
+        zh: [
+          '方舟的內層要塞。奧林剩下的全部兵力都在這裡。',
+          '洛恩|這次可以派出八架機體。這是最後的衝鋒。全部擊毀。',
+          '黑犬|十年來，我第一次為了自己相信的東西打仗。',
+          '葛蕾塔|皮普，看著吧。',
+          '卡爾|打完這仗，我要回家蓋房子。',
+          '莉娜|安雅，跟上。',
+          '安雅|一直都在，白鷺。',
+          '洛恩|鐵鴉——出擊！',
+        ],
+        en: [
+          'The Ark’s inner fortress. Every last unit Orrin has left is here.',
+          'Ron|This time we can send eight machines. This is the last charge. Destroy them all.',
+          'Black Hound|For the first time in ten years I am fighting for something I believe in.',
+          'Greta|Pip, watch this.',
+          'Karl|When this is over, I’m going home to build a house.',
+          'Lena|Anya, keep up.',
+          'Anya|Always, Egret.',
+          'Ron|Ravens — sortie!',
+        ],
+      },
+      after: {
+        zh: [
+          '內層要塞陷落了。奧林的機體丟下武器，駕駛員們一個個舉起雙手走出來。',
+          '奧林士兵|……老闆說，我們會拿到加倍的薪水。但他沒說，要拿命去換。',
+          '洛恩|回家吧。',
+          '歐文|核心的入口在要塞的最深處。只有一條路。哈爾登在那裡等著。',
+        ],
+        en: [
+          'The inner fortress falls. Orrin machines drop their weapons; one by one their pilots climb out with their hands up.',
+          'Orrin soldier|…The boss said we’d get double pay. He never said we’d have to pay for it with our lives.',
+          'Ron|Go home.',
+          'Owen|The way into the core is at the very bottom of the fortress. There is only one road. Halden is waiting there.',
+        ],
+      },
+    },
+    c10m9: {
+      brief: {
+        zh: [
+          '通往核心的通道。黑暗中，只有反應爐發出的藍光。',
+          '洛恩|讓任意一架機體抵達北邊的綠色區域——核心的大門。',
+          '歐文|核心的四根冷卻柱就在大門後面。打斷它們，哈爾登的防護罩就會消失。',
+          '伊沃|通道很窄，砲彈不好落。我會盡力。',
+          '米雅|好暗……感測器幾乎看不見東西。',
+          '洛恩|不需要看得很遠。往前走就對了。',
+        ],
+        en: [
+          'The passage to the core. In the darkness, only the blue glow of the reactor.',
+          'Ron|Get any one machine into the green zone to the north — the gate of the core.',
+          'Owen|The core’s four cooling columns are right behind the gate. Break them and Halden’s shielding fails.',
+          'Ivo|The passage is narrow; shells won’t land easily. I’ll do my best.',
+          'Mia|So dark… my sensors can barely see a thing.',
+          'Ron|We don’t need to see far. Just keep going forward.',
+        ],
+      },
+      after: {
+        zh: [
+          '核心的大門打開了。巨大的反應爐懸在半空中，四周是流動的藍色光芒。',
+          '一架從未見過的巨大機體，從光芒中緩緩站起來。',
+          '哈爾登|歡迎，鐵鴉。我一直很想見見你們。',
+          '哈爾登|你們是我見過最好的產品。勇敢、忠誠、有理想。可惜，你們不肯被賣。',
+          '洛恩|我們不是產品。',
+        ],
+        en: [
+          'The gate of the core opens. The colossal reactor hangs in mid-air, wrapped in flowing blue light.',
+          'A huge machine nobody has seen before slowly rises out of the light.',
+          'Halden|Welcome, Iron Ravens. I have long wanted to meet you.',
+          'Halden|You are the finest product I have ever seen. Brave, loyal, idealistic. A pity you refuse to be sold.',
+          'Ron|We are not a product.',
+        ],
+      },
+    },
+    c10m10: {
+      brief: {
+        zh: [
+          '方舟的核心。哈爾登的機體佇立在反應爐前，身旁是最後一架利維坦試作機。',
+          '哈爾登|戰爭是人類最古老的生意。我只是比別人更會經營。',
+          '哈爾登|你們打倒我，會有另一個人坐上這個位置。需求永遠存在。',
+          '洛恩|也許吧。但今天，這裡的需求是零。',
+          '黑犬|哈爾登的機體是方舟最強的武器。全員，集中火力！',
+          '米雅|大家……這是最後一戰了！',
+          '洛恩|目標：哈爾登。鐵鴉——為了所有沒能回家的人。',
+        ],
+        en: [
+          'The core of the Ark. Halden’s machine stands before the reactor, beside it the last Leviathan prototype.',
+          'Halden|War is mankind’s oldest business. I simply run it better than anyone else.',
+          'Halden|Bring me down, and someone else will sit in this chair. The demand never goes away.',
+          'Ron|Maybe. But today, here, the demand is zero.',
+          'Black Hound|Halden’s machine is the Ark’s strongest weapon. All units, concentrate fire!',
+          'Mia|Everyone… this is the last battle!',
+          'Ron|Target: Halden. Ravens — for everyone who never made it home.',
+        ],
+      },
+      after: {
+        zh: [
+          '哈爾登的機體在反應爐的藍光中崩解。',
+          '哈爾登|……需求……永遠……存在……',
+          '洛恩|那就讓更多的人學會拒絕。',
+          '反應爐的光芒漸漸暗了下去。方舟，熄火了。',
+          '【尾聲】',
+          '三個月後，同盟與聯合在維爾格勒的議會廣場上簽下了和平條約。這一次，簽字的人是兩邊的士兵代表。',
+          '奧林重工被解散，所有資產被凍結，用來重建被戰火摧毀的城鎮。',
+          '艾莉絲・莫蘭把她的報導集結成書，書名叫《鋼魂》。書的最後一頁，寫著所有陣亡者的名字。',
+          '卡爾回到了平原上，在燒毀的農舍原址蓋了一間新房子。他在新的門框上，刻下了第一道刻痕。',
+          '葛蕾塔去了南方的海邊。她在沙灘上寫下皮普的名字，看著海浪把它慢慢帶走。',
+          '「海是銀色的。」她說。',
+          '蒼和托馬斯開起了一家小小的郵政航空公司，把信件送到島上的每一個村莊。',
+          '伊沃回到大學教數學。他的第一堂課，講的是「機率」。',
+          '莉娜和安雅留在了軍官學校，教新的學生一件事：命令，是可以拒絕的。',
+          '黑犬脫下了他的黑色塗裝，消失在北方的山裡。有人說，他在那裡牧羊。',
+          '米雅一直留著那顆貝殼。她說，等她有了孩子，要把它送給孩子。',
+          '洛恩把鐵鴉的旗子交給了艾莉絲。',
+          '洛恩|鐵鴉不再需要了。這是最好的結局。',
+          '艾莉絲|那你要去哪裡？',
+          '洛恩|去一個沒有人知道我名字的地方。然後，好好睡一覺。',
+          '——《鋼魂戰線》完——',
+        ],
+        en: [
+          'Halden’s machine comes apart in the blue light of the reactor.',
+          'Halden|…the demand… never… goes away…',
+          'Ron|Then let more people learn to refuse.',
+          'The reactor’s light slowly fades. The Ark goes cold.',
+          '[Epilogue]',
+          'Three months later, the Alliance and the Union signed a peace treaty in Parliament Square in Velgrad. This time, the people who signed it were representatives of the soldiers of both sides.',
+          'Orrin Heavy Industries was dissolved. All its assets were frozen and used to rebuild the towns the war had destroyed.',
+          'Elise Moran collected her reports into a book called Iron Souls. On its last page are the names of everyone who fell.',
+          'Karl went back to the plains and built a new house where the burnt farmhouse had stood. On the new door frame he cut the first mark.',
+          'Greta went to the sea in the south. She wrote Pip’s name in the sand and watched the waves slowly carry it away.',
+          '"The sea is silver," she said.',
+          'Sora and Tomas started a small air-mail company, carrying letters to every village on the island.',
+          'Ivo went back to the university to teach mathematics. His first lecture was on "probability".',
+          'Lena and Anya stayed on at the officer school, teaching new students one thing: an order can be refused.',
+          'The Black Hound stripped off his black paint and disappeared into the northern mountains. Some say he herds sheep there.',
+          'Mia kept the seashell. She says that when she has a child, she will give it to them.',
+          'Ron handed the Iron Ravens’ flag to Elise.',
+          'Ron|The Ravens aren’t needed any more. That’s the best ending there is.',
+          'Elise|So where will you go?',
+          'Ron|Somewhere nobody knows my name. And then I’m going to get a good night’s sleep.',
+          '— Iron Front: The End —',
+        ],
+      },
+    },
+  },
+};

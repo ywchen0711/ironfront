@@ -3,7 +3,7 @@
 // The words (briefings, debriefings, chapter openings) are in story/*.js.
 // Difficulty follows the mission's place: the gear tier rises one per chapter, the enemy pilots a level every
 // two or three missions, the pay with both.
-import { MISSIONS as FIRST } from './data.js?v=15';
+import { MISSIONS as FIRST } from './data.js?v=16';
 
 // chapter: [zh, en]
 export const CHAPTERS = [
@@ -114,24 +114,24 @@ const SPECS = [
   S('c9m1', '和談', 'The Parley', { theme: 'plains', weather: 'clear', obj: 'defend', turns: 7, mix: 'wz6', reinf: [[2, 'wz2 heli1'], [4, 'tank2'], [6, 'wz3']], faction: 'orrin' }),
   S('c9m2', '刺客', 'Assassins', { theme: 'city', weather: 'fog', obj: 'all', mix: 'wz7 heli1', faction: 'orrin' }),
   S('c9m3', '黑犬', 'The Hound', { theme: 'mountain', weather: 'clear', obj: 'all', mix: 'wz6 tank1 heli1', faction: 'orrin', join: ['hound'] }),
-  S('c9m4', '聯軍', 'The Coalition', { theme: 'plains', weather: 'clear', obj: 'all', size: [20, 14], slots: 8, mix: 'wz6 tank2 heli1 spg1', faction: 'orrin' }),
+  S('c9m4', '聯軍', 'The Coalition', { theme: 'plains', weather: 'clear', obj: 'all', size: [20, 14], slots: 8, mix: 'wz5 tank2 heli1 spg1', faction: 'orrin' }),
   S('c9m5', '空中走廊', 'The Air Corridor', { theme: 'coast', weather: 'clear', obj: 'all', mix: 'heli4 aa1 wz3', faction: 'orrin' }),
   S('c9m6', '生命線', 'Lifeline', { theme: 'snow', weather: 'snow', obj: 'escort', size: [16, 16], mix: 'wz6 tank1', reinf: [[3, 'heli2 wz1']], faction: 'orrin' }),
   S('c9m7', '方舟之影', 'Shadow of the Ark', { theme: 'mountain', weather: 'fog', obj: 'reach', mix: 'wz6 spg1 aa1', faction: 'orrin' }),
   S('c9m8', '最後的工廠', 'The Last Factory', { theme: 'industrial', weather: 'dusk', obj: 'destroy', targets: 3, mix: 'wz6 tank1 aa1', faction: 'orrin' }),
   S('c9m9', '雷鳴', 'Thunder', { theme: 'hills', weather: 'rain', obj: 'survive', turns: 8, mix: 'wz5', reinf: [[2, 'wz3 heli1'], [4, 'tank2 wz2'], [6, 'wz3 spg1']], faction: 'orrin' }),
-  S('c9m10', '凱斯勒', 'Kessler', { theme: 'fortress', weather: 'night', obj: 'boss', size: [18, 14], mix: 'wz6 tank2 heli1', boss: { pilot: 'kessler', role: 'rail', tierUp: 1, lvUp: 6 }, faction: 'orrin' }),
+  S('c9m10', '凱斯勒', 'Kessler', { theme: 'fortress', weather: 'night', obj: 'boss', size: [18, 14], mix: 'wz6 tank2 heli1', boss: { pilot: 'kessler', role: 'rail', tierUp: 1, lvUp: 4 }, faction: 'orrin' }),
   // ---- chapter 10: the Ark
   S('c10m1', '塞薩山', 'Mount Thessa', { theme: 'mountain', weather: 'clear', obj: 'all', size: [18, 13], mix: 'wz7 tank1 heli1', faction: 'orrin' }),
   S('c10m2', '雪線', 'The Snowline', { theme: 'snow', weather: 'snow', obj: 'reach', mix: 'wz7 aa1', faction: 'orrin' }),
   S('c10m3', '外牆', 'The Outer Wall', { theme: 'fortress', weather: 'dusk', obj: 'destroy', targets: 3, mix: 'wz5 tank1 spg1', faction: 'orrin' }),
   S('c10m4', '方舟甲板', 'The Deck of the Ark', { theme: 'industrial', weather: 'clear', obj: 'all', size: [18, 14], mix: 'wz6 tank1 heli1', faction: 'orrin' }),
-  S('c10m5', '防空網', 'The Flak Net', { theme: 'airfield', weather: 'night', obj: 'destroy', targets: 3, mix: 'aa2 wz4 heli1', faction: 'orrin' }),
+  S('c10m5', '防空網', 'The Flak Net', { theme: 'airfield', weather: 'night', obj: 'destroy', targets: 3, mix: 'aa2 wz3 heli1', faction: 'orrin' }),
   S('c10m6', '引擎室', 'The Engine Room', { theme: 'industrial', weather: 'dusk', obj: 'survive', turns: 7, mix: 'wz6', reinf: [[2, 'wz3'], [4, 'tank2 wz2'], [6, 'wz4']], faction: 'orrin' }),
   S('c10m7', '艾莉絲的廣播', "Elise's Broadcast", { theme: 'city', weather: 'rain', obj: 'defend', turns: 7, mix: 'wz5 heli1', reinf: [[3, 'wz2'], [5, 'heli1 tank1']], faction: 'orrin' }),
   S('c10m8', '最後的衝鋒', 'The Last Charge', { theme: 'fortress', weather: 'clear', obj: 'all', size: [20, 15], slots: 8, mix: 'wz6 tank2 heli2 spg1', faction: 'orrin' }),
   S('c10m9', '核心', 'The Core', { theme: 'industrial', weather: 'night', obj: 'reach', size: [18, 14], mix: 'wz8 aa1', faction: 'orrin' }),
-  S('c10m10', '鋼魂', 'Iron Souls', { theme: 'industrial', weather: 'dusk', obj: 'boss', size: [20, 15], slots: 8, mix: 'wz5 tank2 heli1', boss: { pilot: 'halden', role: 'rail', tierUp: 1, lvUp: 8 }, named: [{ pilot: 'kessler', role: 'heavy' }], faction: 'orrin' }),
+  S('c10m10', '鋼魂', 'Iron Souls', { theme: 'industrial', weather: 'dusk', obj: 'boss', size: [20, 15], slots: 8, mix: 'wz4 tank1 heli1', boss: { pilot: 'halden', role: 'rail', tierUp: 1, lvUp: 6 }, named: [{ pilot: 'proto', role: 'heavy' }], faction: 'orrin' }),
 ];
 
 // the machines new squad members bring with them (tiers are the campaign's at the time they join)

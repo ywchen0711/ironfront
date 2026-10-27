@@ -5,7 +5,7 @@
 // where one part sits behind another. No black outline: the edges come from the shading.
 // The skeleton: hips, thighs, knees, shins, feet; a squat boxy torso with a cockpit; big shoulder pads, upper arms,
 // forearms, hands and what they hold. The pose moves the joints; the feet stay on the ground.
-import { ITEM } from './data.js?v=15';
+import { ITEM } from './data.js?v=16';
 
 const rgba = (h) => (255 << 24) | (parseInt(h.slice(5, 7), 16) << 16) | (parseInt(h.slice(3, 5), 16) << 8) | parseInt(h.slice(1, 3), 16);
 const ramp = (...hs) => hs.map(rgba);

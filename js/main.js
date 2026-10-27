@@ -1,17 +1,17 @@
 // 鋼魂戰線 / Iron Front: the game. Title → briefing → battle (your turn, the enemy's turn) → debriefing → base
 // (hangar and shop) → the next mission.
-import { START, PILOTS, ITEM, TERRAIN, TXT, SKILLS, ALL_ITEMS } from './data.js?v=15';
-import { makeUnit, alive, reach, weaponsOf, inRange, dist, hitChance, hitDamage, counterOf, fight, learn, weight, power, moveOf, evadeOf, PARTS, repair, canAttack, tickStatus, FIELD, fits, clsOf, isAir, isStatic, isVehicle, flankOf } from './rules.js?v=15';
-import { CAMPAIGN, CHAPTERS, FACTIONS, JOINERS, scaleOf, patrol } from './campaign.js?v=15';
-import { buildMission, OBJ_LOADOUT } from './mapgen.js?v=15';
-import { STORY } from './story/index.js?v=15';
-import { plan } from './ai.js?v=15';
-import { drawBattleFx, flyOf } from './render.js?v=15';
-import * as B3 from './battle3d.js?v=15';
-import * as Doll from './doll.js?v=15';
-import { SCHEMES, schemeColour } from './mech3d.js?v=15';
-import * as W3 from './world3d.js?v=15';
-import { sfx, setMute, muted } from './sfx.js?v=15';
+import { START, PILOTS, ITEM, TERRAIN, TXT, SKILLS, ALL_ITEMS } from './data.js?v=16';
+import { makeUnit, alive, reach, weaponsOf, inRange, dist, hitChance, hitDamage, counterOf, fight, learn, weight, power, moveOf, evadeOf, PARTS, repair, canAttack, tickStatus, FIELD, fits, clsOf, isAir, isStatic, isVehicle, flankOf } from './rules.js?v=16';
+import { CAMPAIGN, CHAPTERS, FACTIONS, JOINERS, scaleOf, patrol } from './campaign.js?v=16';
+import { buildMission, OBJ_LOADOUT } from './mapgen.js?v=16';
+import { STORY } from './story/index.js?v=16';
+import { plan } from './ai.js?v=16';
+import { drawBattleFx, flyOf } from './render.js?v=16';
+import * as B3 from './battle3d.js?v=16';
+import * as Doll from './doll.js?v=16';
+import { SCHEMES, schemeColour } from './mech3d.js?v=16';
+import * as W3 from './world3d.js?v=16';
+import { sfx, setMute, muted } from './sfx.js?v=16';
 
 const $ = (s) => document.querySelector(s), cv = $('#cv'), g = cv.getContext('2d');
 const KEY = 'ironfront.save', GAME = 'ironfront';
@@ -35,6 +35,8 @@ let curPx = 0, VW = 960, VH = 600, PX = 3, mode = 'title', B = null, scene = nul
 const gl = $('#gl');
 const fx = document.createElement('canvas'), fxg = fx.getContext('2d'); // shots and explosions over the 3D battle scene
 const PL = { body: 'BODY', armL: 'ARM L', armR: 'ARM R', legs: 'LEGS' };
+// short part names for the hit-point bars: a vehicle's are its hull, turret, mount and drive
+const partLabels = (u) => (isVehicle(u) ? (prefs.lang === 'en' ? { body: 'HULL', armR: 'TURRET', armL: 'MOUNT', legs: isAir(u) ? 'ROTOR' : 'DRIVE' } : { body: '車體', armR: '砲塔', armL: '掛架', legs: isAir(u) ? '旋翼' : '驅動' }) : PL);
 W3.init(gl);
 function resize() {
   const r = $('#stage').getBoundingClientRect(), dpr = Math.min(2, window.devicePixelRatio || 1);
@@ -89,7 +91,7 @@ function prepare(M) {
   const built = buildMission({ ...M, paint: fac.paint, pilot: (cls, R) => fac.pilot(R) });
   return { ...built, weather: M.weather || 'clear', theme: M.theme };
 }
-const storyOf = (M) => STORY.m[M.id] || { brief: M.brief, after: M.after };
+const storyOf = (M) => ({ brief: STORY.m[M.id]?.brief || M.brief, after: STORY.m[M.id]?.after || M.after });
 const lines = (o) => (o ? L(o) || [] : []);
 function objText(win) {
   const t = T();
@@ -130,7 +132,7 @@ async function chapterCard(ch) {
 }
 function addPilot(id) {
   if (S.roster.some((r) => r.pilot === id) || !JOINERS[id]) return;
-  S.roster.push({ ...JOINERS[id], lv: Math.max(PILOTS[id].lv, scaleOf(S.mi).lv + 1), exp: 0 }); save();
+  S.roster.push({ ...JOINERS[id], lv: Math.max(PILOTS[id].lv, scaleOf(S.mi).lv + 3), exp: 0 }); save();
   banner(T().joined(L(PILOTS[id])));
 }
 function removePilot(id) {
@@ -245,7 +247,7 @@ function hud() {
 function card(u) {
   const el = $('#card'); if (!u) { el.hidden = true; return; }
   const t = T(), ws = weaponsOf(u), st = [u.st?.burn ? `🔥${t.burnT}` : '', u.st?.stun ? `⚡${t.stunT}` : ''].filter(Boolean).join(' ');
-  const plabel = isVehicle(u) ? { body: t.vs.body, armR: t.vs.armR, armL: t.vs.armL, legs: t.vs.legs } : PL;
+  const plabel = partLabels(u);
   el.innerHTML = `<div class="ch ${u.side}"><b>${esc(u.obj ? t.cls[u.cls] : pname(u))}</b> <small>${u.obj ? '' : `${t.lv}${u.lv}・`}${t.cls[u.cls]}${u.boss ? ' ★' + t.boss : ''}</small><span>${isStatic(u) ? '' : `${t.moveN} ${moveOf(u)}・${t.eva} ${evadeOf(u, B.map)}%・`}${t.armour} ${t.arm3[ITEM[u.body].armour || 'M']}${u.side === 'p' && u.kits ? `・🔧${u.kits}` : ''}${st ? `・${st}` : ''}</span></div>
     <div class="rin">${(isStatic(u) ? ['body'] : PARTS).map((p) => { const k = Math.max(0, u.hp[p]) / u.max[p]; return `<div class="hp"><span>${plabel[p]}</span><i><s style="width:${k * 100}%"></s></i><em>${u.hp[p]}</em></div>`; }).join('')}</div>
     <div class="ws">${ws.map((o) => `<span>${esc(o.slot === 'fist' ? L(o.w) : iname(o.w.id))} <small>${o.w.dmg}×${o.w.shots}・${o.w.rmin}-${o.w.rmax}${o.slot === 'sh' ? `・${u.ammo}` : ''}</small></span>`).join('')}${(u.skills || []).length ? `<span class="sk">★ ${u.skills.map((k) => L(SKILLS[k])).join(' ')}</span>` : ''}</div>`;
@@ -362,7 +364,7 @@ function battleScene(r, hpA, hpD) {
   });
 }
 function buildPanels(sc) {
-  const lab = (u) => (isVehicle(u) ? (prefs.lang === 'en' ? { body: 'HULL', armR: 'TURRET', armL: 'MOUNT', legs: isAir(u) ? 'ROTOR' : 'DRIVE' } : { body: '車體', armR: '砲塔', armL: '掛架', legs: isAir(u) ? '旋翼' : '驅動' }) : PL);
+  const lab = partLabels;
   const one = (s) => `<div class="rp ${sc[s].side}"><div class="rt">${esc(s === 'L' ? sc.nameL : sc.nameR)}</div><div class="rin">${(isStatic(sc[s]) ? ['body'] : PARTS).map((p) => `<div class="hp" data-p="${s}${p}"><span>${lab(sc[s])[p]}</span><i><s></s></i><em></em></div>`).join('')}</div><div class="rw">${esc(sc['w' + s] || '—')}</div></div>`;
   $('#bpan').innerHTML = one('L') + one('R'); $('#bpan').hidden = false; panels();
 }

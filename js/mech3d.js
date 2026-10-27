@@ -5,10 +5,10 @@
 // rivets, grime gathering low on every plate.
 // poseMech() moves the joints every frame from the same pose as the sprites.
 import * as THREE from './lib/three.module.min.js';
-import { ITEM } from './data.js?v=15';
-import { TOON } from './world3d.js?v=15';
-import { hash } from './render.js?v=15';
-import { buildVehicle, poseVehicle } from './vehicle3d.js?v=15';
+import { ITEM } from './data.js?v=16';
+import { TOON } from './world3d.js?v=16';
+import { hash } from './render.js?v=16';
+import { buildVehicle, poseVehicle } from './vehicle3d.js?v=16';
 
 // paint schemes the player can pick in the hangar; accents are the same colours a shade darker
 const SCHEME = {

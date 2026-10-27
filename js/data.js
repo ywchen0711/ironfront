@@ -1,5 +1,5 @@
 // 鋼魂戰線 / Iron Front: the parts, the weapons, the pilots and the first missions.
-import { GENERATED } from './items.js?v=15';
+import { GENERATED } from './items.js?v=16';
 // Every wanzer (walking tank) is a body, two arms and legs; it carries a weapon in each hand and one on its shoulder.
 // The body's power output must carry the weight of everything else.
 
@@ -59,7 +59,7 @@ const OLD = {
   RK1: { fam: 'rocket', dt: 'exp', fx: 'rocket', tier: 1 }, MS1: { fam: 'missile', dt: 'exp', fx: 'missile', tier: 1 }, MS2: { fam: 'hmissile', dt: 'exp', fx: 'missile', tier: 3 },
 };
 for (const x of [...BODIES, ...ARMS, ...LEGS, ...WEAPONS]) Object.assign(x, { kind: 'weapon', maker: 'PW' }, OLD[x.id]);
-export { MAKERS, VCLASS, FAMILIES } from './items.js?v=15';
+export { MAKERS, VCLASS, FAMILIES } from './items.js?v=16';
 export const ITEM = Object.fromEntries([...BODIES, ...ARMS, ...LEGS, ...WEAPONS, ...GENERATED, ...OBJ].map((x) => [x.id, x]));
 export const BUYABLE = Object.values(ITEM).filter((x) => x.price > 0 && !x.id.startsWith('S-'));
 export const ALL_ITEMS = BUYABLE;
