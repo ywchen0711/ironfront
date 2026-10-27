@@ -167,7 +167,7 @@ export function buildMech(u) {
     pr(head, [0.17, 0.22, 0.12, 0.14, 0.12, -0.03], mats.paint, 0, 0.06, 0, 'body');
     pr(head, [0.1, 0.06, 0.03, 0.03, 0.08, 0.05], mats.accent, 0, 0.04, 0.12, 'body', [-0.5, 0, 0]);
     blk(head, 0.13, 0.02, 0.02, mats.ink, 0, 0.09, 0.1, 'body'); eye = blk(head, 0.035, 0.018, 0.02, mats.eye, 0, 0.09, 0.108, 'body');
-    for (const s2 of [-1, 1]) pr(head, [0.025, 0.02, 0.01, 0.01, 0.2], mats.trim, s2 * 0.05, 0.19, 0.06, 'body', [0, 0, s2 * -0.6]);
+    for (const s2 of [-1, 1]) pr(head, [0.025, 0.02, 0.01, 0.01, 0.2], mats.trim, s2 * 0.05, 0.19, 0.06 + s2 * 0.002, 'body', [0, 0, s2 * -0.6]);
     blk(head, 0.03, 0.03, 0.03, mats.lamp, 0, 0.13, 0.08, 'body');
   } else if (BD.head === 'visor') { // a wide, low helmet with one long visor and two horns
     pr(head, [0.28, 0.24, 0.24, 0.2, 0.11], mats.paint, 0, 0.055, 0, 'body');
@@ -200,7 +200,7 @@ export function buildMech(u) {
     if (AR.look === 'spike') pr(sh, [0.05, 0.16, 0.01, 0.02, 0.32, 0.1], mats.trim, side * 0.1, 0.26, 0.06, part, [0.35, 0, side * -0.4]); // a long swept spike
     else if (AR.look !== 'round') pr(sh, [0.04, 0.12, 0.02, 0.02, 0.16, 0.06], mats.paint2, side * 0.1, 0.2, 0.12, part, [0.5, 0, side * -0.3]); // the forward fin
     if (AR.look === 'heavy') { pr(sh, [0.34, 0.44, 0.26, 0.36, 0.08, 0, side * 0.03], mats.accent, side * 0.07, 0.2, 0, part); rivets(sh, [[side * 0.2, 0.21, 0.1], [side * 0.2, 0.21, -0.1], [side * 0.2, 0.21, 0]], part); }
-    pr(sh, [0.32, 0.4, 0.32, 0.4, 0.04], mats.accent, side * 0.06, -0.06, 0, part); // the rim beneath
+    pr(sh, [0.32, 0.39, 0.32, 0.39, 0.04], mats.accent, side * 0.06, -0.06, 0, part); // the rim beneath
     blk(sh, 0.02, 0.05, 0.32, mats.trim, side * 0.205, 0.07, 0, part, [0, 0, side * -0.2]);
     rivets(sh, [[side * 0.18, 0.1, 0.15], [side * 0.18, 0.1, -0.15]], part);
     if (AR.look !== 'round') { put(sh, new THREE.PlaneGeometry(0.13, 0.065), mats.decal, side * 0.216, -0.005, 0.02, part, [0, side * Math.PI / 2, 0]).castShadow = false; blk(sh, 0.24, 0.012, 0.012, mats.edge, side * 0.08, 0.16, 0.17, part); }
@@ -214,7 +214,7 @@ export function buildMech(u) {
     blk(el, 0.2, 0.015, 0.21, mats.accent, 0, -0.04, 0.005, part);
     blk(el, 0.11, 0.07, 0.11, mats.metal, 0, -0.3, 0, part);
     blk(el, 0.17, 0.012, 0.012, mats.edge, 0, -0.27, 0.085, part); cyl(el, 0.014, 0.18, mats.metal, -side * 0.08, -0.14, -0.06, part, 'y', 6); cyl(el, 0.022, 0.06, mats.metalD, -side * 0.08, -0.06, -0.06, part, 'y', 6);
-    for (let k = -1; k <= 1; k++) blk(el, 0.025, 0.06, 0.03, mats.metalD, k * 0.035, -0.35, 0.04, part);
+    for (let k = -1; k <= 1; k++) blk(el, 0.025, 0.055, 0.03, mats.metalD, k * 0.04, -0.348, 0.033, part);
     // the weapon lies along the forearm: down when the arm hangs, forward when it is raised
     const w = u[slot] && ITEM[u[slot]];
     if (w) {
@@ -222,14 +222,14 @@ export function buildMech(u) {
       if (w.cat === 'shield') { pr(hand, [0.05, 0.34, 0.05, 0.26, 0.52], mats.metalD, side * 0.12, 0.1, 0.02, part); blk(hand, 0.01, 0.42, 0.04, mats.trim, side * 0.15, 0.1, 0.1, part); rivets(hand, [[side * 0.15, 0.32, -0.1], [side * 0.15, -0.12, -0.1], [side * 0.15, 0.32, 0.12]], part); }
       else if (w.cat === 'melee') {
         if (w.id === 'KN1') { pr(hand, [0.17, 0.17, 0.15, 0.15, 0.12], mats.metal, 0, -0.06, 0, part); for (let k = -1; k <= 1; k++) pr(hand, [0.03, 0.04, 0.01, 0.01, 0.06], mats.metalD, k * 0.05, -0.12, 0.06, part, [Math.PI, 0, 0]); }
-        else { cyl(hand, 0.025, 0.56, mats.metal, 0, 0, 0.2, part, 'z', 6); if (w.id === 'AX1') { pr(hand, [0.03, 0.08, 0.03, 0.2, 0.22], mats.metal, 0, 0.08, 0.43, part); blk(hand, 0.035, 0.22, 0.02, mats.lamp, 0, 0.08, 0.53, part); } if (w.id === 'RD1') cyl(hand, 0.04, 0.14, mats.jet, 0, 0, 0.47, part, 'z', 6); }
+        else { cyl(hand, 0.025, 0.56, mats.metal, 0, 0, 0.2, part, 'z', 6); if (w.id === 'AX1') { pr(hand, [0.03, 0.08, 0.03, 0.2, 0.22], mats.metal, 0, 0.08, 0.43, part); blk(hand, 0.042, 0.228, 0.02, mats.lamp, 0, 0.08, 0.535, part); } if (w.id === 'RD1') cyl(hand, 0.04, 0.14, mats.jet, 0, 0, 0.47, part, 'z', 6); }
       } else {
         const len = { MG1: 0.42, MG2: 0.46, SG1: 0.32, RF1: 0.52, RF2: 0.66 }[w.id] || 0.42, th = w.id === 'SG1' || w.id === 'MG2' ? 0.035 : 0.025;
         pr(hand, [0.09, 0.13, 0.08, 0.1, 0.22], mats.metalD, 0, -0.06, 0, part);
         cyl(hand, th, len, mats.metal, 0, -0.08 - len / 2, 0.02, part, 'y', 6);
         cyl(hand, th * 1.7, 0.06, mats.metalD, 0, -0.08 - len + 0.03, 0.02, part, 'y', 6);
         if (w.id === 'MG1' || w.id === 'MG2') cyl(hand, 0.07, 0.05, mats.metalD, 0.06, -0.05, 0.05, part, 'x', 8); else blk(hand, 0.05, 0.08, 0.1, mats.metalD, 0, -0.04, 0.1, part);
-        if (w.id === 'RF2' || w.id === 'RF1') { cyl(hand, 0.022, 0.14, mats.metal, 0, -0.1, -0.06, part, 'y', 6); blk(hand, 0.02, 0.02, 0.02, mats.glass, 0, -0.17, -0.06, part); }
+        if (w.id === 'RF2' || w.id === 'RF1') { cyl(hand, 0.022, 0.14, mats.metal, 0, -0.107, -0.063, part, 'y', 8); blk(hand, 0.02, 0.02, 0.02, mats.glass, 0, -0.17, -0.06, part); }
         if (w.id === 'SG1') blk(hand, 0.06, 0.08, 0.06, mats.accent, 0, -0.2, 0.05, part);
       }
       parts['muzzle' + slot] = pivot(hand, 0, -0.12 - ({ MG1: 0.42, MG2: 0.46, SG1: 0.32, RF1: 0.52, RF2: 0.66 }[w.id] || 0.42), 0.02);
@@ -244,7 +244,7 @@ export function buildMech(u) {
     const tr = pivot(group, 0, 0, 0);
     for (const s of [-1, 1]) {
       pr(tr, [0.2, 0.92, 0.2, 0.8, 0.2], mats.metalD, s * 0.3, 0.12, 0, 'legs');
-      for (let k = -4; k <= 4; k++) blk(tr, 0.22, 0.04, 0.08, mats.metal, s * 0.3, 0.025, k * 0.1, 'legs');
+      for (let k = -4; k <= 4; k++) blk(tr, 0.214, 0.04, 0.08, mats.metal, s * 0.3, 0.025, k * 0.1, 'legs');
       for (let k = -1; k <= 1; k++) cyl(tr, 0.08, 0.22, mats.metal, s * 0.3, 0.12, k * 0.28, 'legs', 'x', 8);
       pr(tr, [0.06, 0.84, 0.05, 0.7, 0.12], mats.paint2, s * 0.42, 0.18, 0, 'legs');
     }
@@ -285,6 +285,10 @@ export function buildMech(u) {
     legL = leg(-1); legR = leg(1);
   }
   // ---- a health bar, a commander's star, a marker over the selected machine
+  // many small parts sit flush on bigger ones; two faces in the same plane flicker as the GPU flips between them.
+  // Push every part's faces out by a hair, a little more for each part added after it, smaller parts more (details
+  // are smaller than what they sit on), so the detail always wins.
+  hit.forEach((mesh, i) => { const g = mesh.geometry; if (!g.boundingBox) g.computeBoundingBox(); const sz = g.boundingBox.getSize(new THREE.Vector3()), big = Math.max(sz.x, sz.y, sz.z), e = 0.001 + 0.007 * (1 - Math.min(1, big / 0.7)) + i * 0.00004; mesh.scale.set(1 + e / Math.max(0.01, sz.x), 1 + e / Math.max(0.01, sz.y), 1 + e / Math.max(0.01, sz.z)); });
   const barC = document.createElement('canvas'); barC.width = 20; barC.height = 5;
   const barT = new THREE.CanvasTexture(barC); barT.magFilter = barT.minFilter = THREE.NearestFilter; barT.generateMipmaps = false;
   const bar = new THREE.Sprite(new THREE.SpriteMaterial({ map: barT, depthTest: false })); bar.scale.set(0.5, 0.125, 1); bar.position.y = 1.4; bar.renderOrder = 9; group.add(bar);
@@ -307,7 +311,8 @@ export function buildMech(u) {
 }
 
 // pose: { phase, walk, aim, recoil, muzzle, flinch, t } and, in the battle scene, a fighting stance:
-// stance (0-1: one foot forward, knees bent), sway (-1..1: weight shifting), lean (+ forward), twist (shoulders), guard (0-1: arms up)
+// stance (0-1: one foot forward, knees bent), sway (-1..1: weight shifting), lean (+ forward), twist (shoulders), guard (0-1: arms up),
+// and for hits and moves: crouch (0-1: knees give), kickL/kickR (an arm knocked back), headKick, roll (sideways), armL/armR ({s, e}: set the arm)
 export function poseMech(m, u, pose) {
   const w = pose.walk || 0, ph = pose.phase || 0, aim = pose.aim || 0, t = pose.t || 0;
   // broken parts go dark; a destroyed arm is gone
@@ -324,7 +329,7 @@ export function poseMech(m, u, pose) {
       // standing to fight: the left foot forward, the right one back, both knees bent to the same lowered hip height,
       // each shin solved so its foot stays flat on the ground
       a.th += 0.3 * st + sway * 0.04; b.th -= 0.24 * st - sway * 0.04;
-      hipY = Math.min(Math.cos(a.th) * 0.24, Math.cos(b.th) * 0.24) + 0.32 * Math.cos(0.5 * st) + 0.08 + 0.02 + breathe * 2;
+      hipY = Math.min(Math.cos(a.th) * 0.24, Math.cos(b.th) * 0.24) + 0.32 * Math.cos(0.5 * st) + 0.08 + 0.02 + breathe * 2 - Math.min(1, pose.crouch || 0) * 0.13;
       for (const l of [a, b]) l.bend = l.th + Math.acos(Math.max(-1, Math.min(1, (hipY - 0.02 - 0.08 - Math.cos(l.th) * 0.24) / 0.32)));
     }
     for (const [L, l] of [[m.legL, a], [m.legR, b]]) { L.hip.position.y = hipY; L.hip.rotation.x = -l.th; L.knee.rotation.x = l.bend; L.ank.rotation.x = l.th - l.bend; }
@@ -332,9 +337,10 @@ export function poseMech(m, u, pose) {
   } else if (m.legsType.hover) m.hips.position.y = 0.44 + Math.sin(t * 4) * 0.015;
   m.hips.position.x = sway * 0.025 * st; m.hips.rotation.z = -sway * 0.03 * st;
   m.torso.rotation.x = w * 0.08 + aim * 0.04 + st * 0.06 + (pose.lean || 0) - (pose.recoil || 0) * 0.03;
-  m.torso.rotation.y = pose.twist || 0; m.torso.rotation.z = sway * 0.05 * st;
+  m.torso.rotation.y = pose.twist || 0; m.torso.rotation.z = sway * 0.05 * st + (pose.roll || 0);
   m.torso.position.x = (pose.flinch || 0) * 0.03;
   m.head.rotation.y = (pose.look || 0) + Math.sin(t * 0.7) * 0.12 * st * (1 - aim);
+  m.head.rotation.x = -(pose.headKick || 0) * 0.45; m.head.rotation.z = (pose.headKick || 0) * 0.2 * Math.sign(pose.roll || 1);
   // arms swing against the legs; the right arm comes up to aim
   const sw = 0.45 * w;
   const restR = { s: -(0.1 + Math.sin(ph + Math.PI) * sw), e: -(0.6 + Math.sin(ph + Math.PI) * sw * 1.3) }, restL = { s: -(0.1 + Math.sin(ph) * sw), e: -(0.6 + Math.sin(ph) * sw * 1.3) };
@@ -344,9 +350,13 @@ export function poseMech(m, u, pose) {
   m.armR.up.rotation.x = restR.s * (1 - aR) + aimS * aR; m.armR.el.rotation.x = restR.e * (1 - aR);
   m.armL.up.rotation.x = restL.s * (1 - gL) - 0.55 * gL + Math.sin(t * 1.9) * 0.03 * st; m.armL.el.rotation.x = restL.e * (1 - gL) - 1.2 * gL;
   if (pose.swing != null) { const A = pose.swingL ? m.armL : m.armR; A.up.rotation.x = pose.swing; A.el.rotation.x = -0.3; } // a melee blow, with whichever arm holds the weapon
+  if (pose.armR) { m.armR.up.rotation.x = pose.armR.s; m.armR.el.rotation.x = pose.armR.e; }
+  if (pose.armL) { m.armL.up.rotation.x = pose.armL.s; m.armL.el.rotation.x = pose.armL.e; }
+  // an arm that is hit is thrown back and out
+  for (const [A, k, side] of [[m.armR, pose.kickR || 0, 1], [m.armL, pose.kickL || 0, -1]]) { A.up.rotation.x += k; A.sh.rotation.z = side * k * 0.35; }
   // the muzzle flash; the mono-eye sweeps from side to side
   const mz = m.parts.muzzlewR;
-  if (mz) { if (!mz.flash) { mz.flash = new THREE.Mesh(prism(0.16, 0.16, 0.16, 0.16, 0.16), new THREE.MeshBasicMaterial({ color: '#ffd060' })); mz.add(mz.flash); } mz.flash.visible = !!pose.muzzle; mz.flash.rotation.set(t * 9, t * 7, 0); }
+  if (mz) { if (!mz.flash) { mz.flash = new THREE.Mesh(prism(0.1, 0.1, 0.1, 0.1, 0.1), new THREE.MeshBasicMaterial({ color: '#ffd060' })); mz.add(mz.flash); } mz.flash.visible = !!pose.muzzle; mz.flash.rotation.set(t * 9, t * 7, 0); mz.flash.scale.setScalar(0.7 + ((t * 37) % 1) * 0.6); }
   if (m.sweep) m.eye.position.x = Math.sin(t * 1.6) * 0.045;
   m.mats.eye.color.set(Math.floor(t * 2) % 2 ? '#ff4a30' : '#ff7a50');
 }

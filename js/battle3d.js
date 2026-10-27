@@ -39,7 +39,7 @@ function init() {
   sun.shadow.mapSize.set(2048, 2048); sun.shadow.bias = -0.0008; sun.shadow.normalBias = 0.012;
   Object.assign(sun.shadow.camera, { left: -3, right: 3, top: 3, bottom: -3, near: 0.5, far: 12 }); sun.shadow.camera.updateProjectionMatrix();
   scn.add(sun);
-  cmr = new THREE.PerspectiveCamera(28, 16 / 9, 0.1, 80);
+  cmr = new THREE.PerspectiveCamera(28, 16 / 9, 1, 60);
 }
 
 // a new fight: build the two machines once and keep them until the next one
@@ -62,62 +62,134 @@ export function start(sc) {
 }
 
 const v3 = new THREE.Vector3();
+const clamp01 = (v) => Math.max(0, Math.min(1, v));
+// an impulse: up fast, then dying away
+const imp = (dt, rise, decay) => (dt < 0 ? 0 : dt < rise ? dt / rise : Math.exp(-(dt - rise) * decay));
+// Every fight is choreographed a little differently: a camera, an entrance, each side's way of standing, and for each
+// volley a way of shooting; for each blow a way of swinging; for each hit or miss a way of reacting. All of it comes
+// from one random seed per fight, so a frame always looks the same for the same moment.
+function choreograph(sc) {
+  if (sc.seed == null) sc.seed = Math.floor(Math.random() * 1e5);
+  const R = (a, b = 0) => hash(sc.seed + a * 7, b * 13 + 3, 29);
+  const plan = { cam: Math.floor(R(1) * 4), enter: ['walk', 'dash', 'ready'][Math.floor(R(2) * 3)], side: {}, volleys: [], R };
+  ['L', 'R'].forEach((s, i) => { plan.side[s] = { sw: 1 + R(3, i) * 0.7, ph: R(4, i) * 6, crouch: R(5, i) * 0.3, twist: 0.24 + R(6, i) * 0.16 }; });
+  // volleys: the shots of one side in a row
+  for (const e of sc.events) {
+    let v = plan.volleys[plan.volleys.length - 1];
+    if (!v || v.from !== e.from) { v = { from: e.from, cat: e.cat, t0: e.at, t1: e.at, n: plan.volleys.length }; plan.volleys.push(v); const r = R(10, v.n);
+      v.mode = e.cat === 'short' ? ['stand', 'crouch', 'advance', 'strafe', 'brace'][Math.floor(r * 5)] : e.cat === 'long' ? ['stand', 'brace', 'back'][Math.floor(r * 3)] : 'melee';
+      v.dir = R(11, v.n) > 0.5 ? 1 : -1; }
+    v.t1 = e.at; e.style = ['over', 'side', 'thrust'][Math.floor(R(12, e.n) * 3)];
+  }
+  sc.plan = plan;
+}
+
 // pose both machines for time sc.t, render, and hand back where things are on screen (in the renderer's pixels)
 export function render(sc) {
-  if (key !== sc) start(sc);
-  const t = sc.t, { w, h } = W3.viewSize(), aspect = w / h;
+  if (key !== sc) { start(sc); choreograph(sc); }
+  const t = sc.t, { w, h } = W3.viewSize(), aspect = w / h, plan = sc.plan, R = plan.R;
   // keep both machines in frame on a tall phone too
   const dist = Math.max(6.4, 4.8 / (2 * Math.tan(THREE.MathUtils.degToRad(14)) * aspect));
-  cmr.aspect = aspect; cmr.position.set(1.1, 1.0 + dist * 0.05, dist); cmr.lookAt(0, 0.9, 0);
-  if (debug.pos) { cmr.position.set(...debug.pos); cmr.lookAt(...debug.look); }
-  cmr.updateProjectionMatrix();
+  cmr.aspect = aspect;
   const out = {};
   for (const s of ['L', 'R']) {
-    const m = sideMech[s], u = sc[s], f = s === 'L' ? 1 : -1, mine = sc.events.filter((e) => e.from === s), theirs = sc.events.filter((e) => e.from !== s);
-    const busy = mine.filter((e) => t > e.at - 0.5 && t < e.at + 0.3), guns = busy.some((e) => e.cat === 'short');
-    const melee = mine.find((e) => e.cat === 'melee' && t > e.at - 0.35 && t < e.at + 0.3);
-    const shot = mine.some((e) => e.cat === 'short' && t > e.at - 0.16 && t < e.at - 0.08);
-    const launch = mine.find((e) => e.cat === 'long' && t > e.at - 0.6 && t < e.at - 0.35);
-    const hits = theirs.filter((e) => !e.miss && t >= e.at && t < e.at + 0.25);
-    // braced for what is coming: the guard goes up just before the other side fires
-    const incoming = !busy.length && theirs.some((e) => t > e.at - 0.6 && t < e.at + 0.2);
-    // they walk in from either side at the start
-    const enter = Math.min(1, t / 0.5), walkIn = enter < 1;
-    let x = -f * (GAP + 0.7 * (1 - (1 - (1 - enter) ** 2))), swing = null;
-    if (melee) {
-      const k = 1 - Math.abs(t - melee.at) / 0.35; x += f * (2 * GAP - 1.0) * Math.min(1, k * 1.6);
-      const q = Math.max(0, Math.min(1, (t - (melee.at - 0.3)) / 0.4)); swing = q < 0.7 ? -0.4 - 2.2 * (q / 0.7) : -2.6 + 1.9 * ((q - 0.7) / 0.3);
+    const m = sideMech[s], u = sc[s], f = s === 'L' ? 1 : -1, P = plan.side[s], theirs = sc.events.filter((e) => e.from !== s);
+    let x = -f * GAP, z = f * 0.22, walk = 0, phase = t * 16, crouch = P.crouch, lean = 0, roll = 0, twist = P.twist, kickR = 0, kickL = 0, headKick = 0;
+    let aim = 0, guard = 0, armR = null, armL = null, swing = null, push = 0, muzzle = false, recoil = 0;
+    // the entrance: walking in, sliding in on the jets, or already standing ready
+    const enter = clamp01(t / 0.5), left = 1 - enter;
+    if (plan.enter === 'walk') { x -= f * 0.7 * left * left; if (enter < 1) { walk = 1; phase = t * 13; } }
+    else if (plan.enter === 'dash') { x -= f * 1.6 * left ** 3; lean += 0.3 * left; crouch += 0.4 * left; }
+    else guard = Math.max(guard, 0.6 * left);
+    // my volley, if one is under way
+    const V = plan.volleys.find((v) => v.from === s && t > v.t0 - 0.5 && t < v.t1 + 0.4);
+    if (V) {
+      const q = clamp01((t - (V.t0 - 0.5)) / (V.t1 - V.t0 + 0.9)), env = Math.sin(q * Math.PI);
+      if (V.cat === 'short') {
+        aim = 1;
+        if (V.mode === 'crouch') crouch += 0.75 * env;
+        else if (V.mode === 'advance') { x += f * 0.4 * q; walk = 0.45; phase = t * 9; }
+        else if (V.mode === 'strafe') { z += V.dir * 0.4 * env; walk = 0.45; phase = t * 9; roll += V.dir * 0.05 * env; }
+        else if (V.mode === 'brace') { lean += 0.12 * env; armL = { s: -1.3 * env - 0.1, e: -0.5 * env - 0.6 * (1 - env) }; crouch += 0.25 * env; }
+      } else if (V.cat === 'long') {
+        if (V.mode === 'brace') { crouch += 0.6 * env; lean += 0.1 * env; }
+        if (V.mode === 'back') { x -= f * 0.3 * q; walk = 0.45; phase = t * 9; }
+        guard = Math.max(guard, 0.4 * env);
+      }
     }
-    // each hit shoves it back and rocks the torso, heavier blows more
-    let push = 0;
-    for (const e of theirs) { const dt = t - e.at; if (e.miss || dt < 0 || dt > 1.2) continue; const amp = e.cat === 'long' ? 0.24 : e.cat === 'melee' ? 0.2 : 0.035; push += amp * (dt < 0.06 ? dt / 0.06 : Math.exp(-(dt - 0.06) * 4)); }
+    for (const e of sc.events) {
+      if (e.from !== s) continue;
+      const dt = t - e.at;
+      // each shot: a flash, the gun kicks up a little differently every time, the body rocks
+      if (e.cat === 'short' && dt > -0.16 && dt < -0.08) { muzzle = true; recoil = 1; }
+      if (e.cat === 'short' && dt > -0.16 && dt < 0.05) { roll -= 0.025 * f; lean -= 0.02; }
+      if (e.cat === 'long') { const k = imp(dt + 0.55, 0.05, 5); lean -= 0.16 * k; push -= 0.05 * k; }
+      // a blow: charge across and strike, overhead, sideways or straight ahead
+      if (e.cat === 'melee' && dt > -0.35 && dt < 0.3) {
+        const k = 1 - Math.abs(dt) / 0.35; x += f * (2 * GAP - 1.0) * Math.min(1, k * 1.6); walk = 1; phase = t * 16;
+        const q = clamp01((dt + 0.3) / 0.4);
+        const arm = ITEM[u.wR]?.cat !== 'melee' && ITEM[u.wL]?.cat === 'melee' ? 'L' : 'R', set = (v) => { if (arm === 'L') armL = v; else armR = v; };
+        if (e.style === 'side') { twist = q < 0.7 ? 0.9 * (q / 0.7) : 0.9 - 1.7 * ((q - 0.7) / 0.3); set({ s: -1.45, e: -0.25 }); }
+        else if (e.style === 'thrust') { set(q < 0.7 ? { s: -0.4 + 0.2 * (q / 0.7), e: -1.8 } : { s: -0.2 - 1.4 * ((q - 0.7) / 0.3), e: -1.8 + 1.8 * ((q - 0.7) / 0.3) }); lean += q > 0.7 ? 0.3 : 0; }
+        else { swing = q < 0.7 ? -0.4 - 2.2 * (q / 0.7) : -2.6 + 1.9 * ((q - 0.7) / 0.3); set(null); }
+        lean += 0.1;
+      }
+    }
+    // braced for what is coming: the guard goes up just before the other side fires
+    if (!V && theirs.some((e) => t > e.at - 0.6 && t < e.at + 0.2)) guard = 1;
+    // reactions to every shot aimed at me
+    for (const e of theirs) {
+      const dt = t - e.at;
+      if (!e.miss) {
+        if (dt < 0 || dt > 1.5) continue;
+        const heavy = e.cat !== 'short', amp = (heavy ? 1 : 0.3) * (e.broke ? 1.5 : 1), I = imp(dt, 0.05, heavy ? 3.2 : 7), r = R(31, e.n) - 0.5;
+        if (e.part === 'body') { lean -= amp * 0.34 * I; headKick += amp * 0.9 * I; roll += r * amp * 0.3 * I; }
+        else if (e.part === 'armR') { kickR += amp * 1.1 * I; twist += amp * 0.4 * I; roll += 0.08 * amp * I; }
+        else if (e.part === 'armL') { kickL += amp * 1.1 * I; twist -= amp * 0.4 * I; roll -= 0.08 * amp * I; }
+        else { crouch += amp * 0.8 * I; roll += r * amp * 0.35 * I; lean += amp * 0.12 * I; }
+        push += amp * (heavy ? 0.32 : 0.05) * I;
+        // a heavy blow sends it staggering back a step or two
+        if (heavy && dt > 0.04 && dt < 0.6) { walk = Math.max(walk, 0.45); phase = dt * 20; }
+      } else if (dt > -0.15 && dt < 0.5) {
+        // a miss: it sidesteps or ducks
+        const b = Math.sin(clamp01((dt + 0.15) / 0.65) * Math.PI), dir = R(34, e.n) > 0.5 ? 1 : -1;
+        if (R(33, e.n) < 0.5) { z += dir * 0.3 * b; roll += dir * 0.12 * b; walk = Math.max(walk, 0.45); phase = t * 12; }
+        else { crouch += 0.7 * b; lean += 0.18 * b; }
+      }
+    }
     const dying = sc.dead?.[s] && t > sc.deadAt ? Math.min(1, (t - sc.deadAt) / 0.9) : 0;
-    const jolt = hits.length ? Math.sin(t * 70) * 0.02 : 0;
-    // feet a little apart in depth and turned a little towards us; the shoulders turn back to face the enemy
-    m.holder.position.set(x - f * (jolt + push * 0.6), -dying * 0.25, f * 0.22);
+    const hits = theirs.filter((e) => !e.miss && t >= e.at && t < e.at + 0.25);
+    const jolt = hits.length ? Math.sin(t * 70) * 0.015 : 0;
+    m.holder.position.set(x - f * (jolt + push), -dying * 0.25, z);
     m.holder.rotation.y = f * (Math.PI / 2 - 0.32);
     m.group.rotation.x = -dying * dying * 1.1; // a destroyed machine topples backwards
-    const sway = Math.sin(t * 1.25 + (s === 'L' ? 0 : 2.1));
+    const sway = Math.sin(t * 1.25 * P.sw + P.ph);
     poseMech(m, { ...u, hp: sc['hp' + s] }, {
-      t, walk: melee || walkIn ? 1 : 0, phase: t * (walkIn ? 13 : 16), aim: guns ? 1 : 0, muzzle: shot, recoil: shot ? 1 : 0,
-      flinch: hits.length ? Math.sin(t * 60) : 0, swing, swingL: ITEM[u.wR]?.cat !== 'melee' && ITEM[u.wL]?.cat === 'melee',
-      stance: dying ? 0 : 1, sway: walkIn ? 0 : sway, twist: 0.32 * (melee ? 0.3 : 1), look: 0,
-      lean: -push * 1.3 + (launch ? -0.1 : 0) + (melee ? 0.12 : 0) + dying * 0.2, guard: incoming ? 1 : 0,
+      t, walk, phase, aim, muzzle, recoil, flinch: hits.length ? Math.sin(t * 60) : 0, swing, swingL: ITEM[u.wR]?.cat !== 'melee' && ITEM[u.wL]?.cat === 'melee',
+      stance: dying ? 0 : 1, sway: walk >= 0.5 ? 0 : sway, twist, look: 0, lean: lean + dying * 0.2, guard, crouch: Math.min(1, crouch), roll, kickR, kickL, headKick, armR, armL,
     });
     // the part that is hit flashes white
     const lit = {}; for (const e of hits) lit[e.part] = Math.floor((t - e.at) * 30) % 2 === 0;
     for (const p of ['body', 'armL', 'armR', 'legs']) m.flash(p, !!lit[p], sc['hp' + s][p] <= 0);
     m.fade(dying > 0.7 ? 1 - (dying - 0.7) / 0.3 * 0.6 : 1);
   }
-  // the camera drifts, leans towards whoever is acting and shakes with the heavy hits
+  // the camera: one of four ways of filming the fight; it drifts, leans towards whoever is acting,
+  // shakes with the heavy hits and closes in on a machine that is destroyed
   const act = sc.events.find((e) => t > e.at - 0.7 && t < e.at + 0.4);
   cam.x += (((act ? (act.from === 'L' ? -0.35 : 0.35) : 0) + Math.sin(t * 0.3) * 0.2) - cam.x) * 0.04;
   let shake = 0; for (const e of sc.events) { const dt = t - e.at; if (!e.miss && dt > 0 && dt < 0.3 && e.cat !== 'short') shake = Math.max(shake, (1 - dt / 0.3) * 0.05); }
-  if (sc.dead && (sc.dead.L || sc.dead.R) && t > sc.deadAt && t < sc.deadAt + 0.6) shake = Math.max(shake, 0.06);
-  if (!debug.pos) {
-    const d = dist * (1 - Math.min(1, t / 4) * 0.06);
-    cmr.position.set(1.1 + cam.x + (Math.random() - 0.5) * shake, 1.0 + d * 0.05 + (Math.random() - 0.5) * shake, d); cmr.lookAt(cam.x * 0.8, 0.9, 0); cmr.updateProjectionMatrix();
+  const deadSide = sc.dead && (sc.dead.L ? 'L' : sc.dead.R ? 'R' : null), kill = deadSide && t > sc.deadAt ? clamp01((t - sc.deadAt) / 0.8) : 0;
+  if (kill && kill < 0.6) shake = Math.max(shake, 0.06);
+  if (debug.pos) { cmr.position.set(...debug.pos); cmr.lookAt(...debug.look); }
+  else {
+    const d = dist * (1 - Math.min(1, t / 4) * 0.06) * (1 - kill * 0.15), jx = (Math.random() - 0.5) * shake, jy = (Math.random() - 0.5) * shake;
+    const lx = cam.x * 0.8 + (kill ? (deadSide === 'L' ? -GAP : GAP) * 0.35 * kill : 0);
+    if (plan.cam === 1) { cmr.position.set(0.5 + cam.x + jx, 0.45 + jy, d * 0.94); cmr.lookAt(lx, 1.05, 0); } // low, looking up at them
+    else if (plan.cam === 2) { cmr.position.set(1.7 + cam.x + jx, 2.2 + jy, d * 1.05); cmr.lookAt(lx, 0.75, 0); } // high
+    else if (plan.cam === 3) { const a = 0.4 - t * 0.09; cmr.position.set(Math.sin(a) * d + cam.x + jx, 1.15 + jy, Math.cos(a) * d); cmr.lookAt(lx, 0.88, 0); } // slowly circling
+    else { cmr.position.set(1.1 + cam.x + jx, 1.0 + d * 0.05 + jy, d); cmr.lookAt(lx, 0.9, 0); }
   }
+  cmr.updateProjectionMatrix();
   W3.renderWith(scn, cmr);
   // where everything is on screen
   const proj = (obj, dx = 0, dy = 0, dz = 0) => { obj.updateWorldMatrix(true, false); v3.set(dx, dy, dz).applyMatrix4(obj.matrixWorld).project(cmr); return { x: Math.round((v3.x + 1) / 2 * w), y: Math.round((1 - v3.y) / 2 * h) }; };

@@ -18,7 +18,7 @@ function init() {
   const deck = new THREE.Mesh(new THREE.CylinderGeometry(0.95, 1, 0.08, 20), new THREE.MeshToonMaterial({ color: '#3a3832' }));
   deck.position.y = -0.04; deck.receiveShadow = true; scn.add(deck);
   const ring = new THREE.Mesh(new THREE.TorusGeometry(0.97, 0.02, 4, 32), new THREE.MeshBasicMaterial({ color: '#c8a040' })); ring.rotation.x = Math.PI / 2; scn.add(ring);
-  cmr = new THREE.PerspectiveCamera(30, 1, 0.1, 30); cmr.position.set(0, 1.3, 3.6); cmr.lookAt(0, 0.7, 0);
+  cmr = new THREE.PerspectiveCamera(30, 1, 1, 12); cmr.position.set(0, 1.3, 3.6); cmr.lookAt(0, 0.7, 0);
   canvas.addEventListener('pointerdown', (e) => { drag = { x: e.clientX }; canvas.setPointerCapture(e.pointerId); });
   canvas.addEventListener('pointermove', (e) => { if (!drag) return; spin += (e.clientX - drag.x) * 0.012; drag.x = e.clientX; });
   const up = () => { drag = null; }; canvas.addEventListener('pointerup', up); canvas.addEventListener('pointercancel', up);

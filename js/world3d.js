@@ -29,7 +29,7 @@ export function init(canvas) {
   renderer.shadowMap.enabled = true; renderer.shadowMap.type = THREE.BasicShadowMap;
   renderer.outputColorSpace = THREE.SRGBColorSpace;
   scene = new THREE.Scene(); scene.background = new THREE.Color('#100e0c');
-  camera = new THREE.OrthographicCamera(-10, 10, 6, -6, 0.1, 200);
+  camera = new THREE.OrthographicCamera(-10, 10, 6, -6, 5, 90); // a tight depth range: more depth precision
   scene.add(new THREE.HemisphereLight('#d8d0bc', '#3a3228', 1.5));
   sun = new THREE.DirectionalLight('#fff0d4', 2.2); sun.castShadow = true;
   sun.shadow.mapSize.set(2048, 2048); sun.shadow.bias = -0.0015; sun.shadow.normalBias = 0.03;
