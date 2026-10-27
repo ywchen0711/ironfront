@@ -2,11 +2,11 @@
 // The squad keeps its pilots' levels from mission to mission, and is kitted out with gear of the mission's tier
 // (as a player who spends their pay would be). For each mission it reports the win rate, the turns it took and
 // how many machines were lost.   node tools/sim.mjs [from] [to] [runs]
-import { CAMPAIGN, FACTIONS, JOINERS, scaleOf } from '../js/campaign.js?v=16';
-import { buildMission, enemyKit, rng, OBJ_LOADOUT } from '../js/mapgen.js?v=16';
-import { makeUnit, alive, reach, weaponsOf, fight, learn, canAttack, tickStatus, FIELD, isStatic, dist, hurtOf, repair, setRandom } from '../js/rules.js?v=16';
-import { plan } from '../js/ai.js?v=16';
-import { START, PILOTS, ITEM } from '../js/data.js?v=16';
+import { CAMPAIGN, FACTIONS, JOINERS, scaleOf } from '../js/campaign.js?v=17';
+import { buildMission, enemyKit, rng, OBJ_LOADOUT } from '../js/mapgen.js?v=17';
+import { makeUnit, alive, reach, weaponsOf, fight, learn, canAttack, tickStatus, FIELD, isStatic, dist, hurtOf, repair, setRandom } from '../js/rules.js?v=17';
+import { plan } from '../js/ai.js?v=17';
+import { START, PILOTS, ITEM } from '../js/data.js?v=17';
 
 const [from = 0, to = CAMPAIGN.length - 1, runs = 6] = process.argv.slice(2).map(Number);
 // who is in the squad at mission i

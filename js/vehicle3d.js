@@ -5,8 +5,8 @@
 //   torso = the hull, armR = the main mount (turret / chin gun), armL = the side mount (pintle gun / pylons),
 //   legs = the drive (tracks / wheels / rotor), head = a point above, parts.muzzlewR / muzzlewL / launcher.
 import * as THREE from './lib/three.module.min.js';
-import { ITEM } from './data.js?v=16';
-import { finish, prism } from './mech3d.js?v=16';
+import { ITEM } from './data.js?v=17';
+import { finish, prism } from './mech3d.js?v=17';
 
 export function buildVehicle(u, K) {
   const cls = ITEM[u.body].cls, { mats, group, parts, put, pr, blk, cyl, pivot } = K;

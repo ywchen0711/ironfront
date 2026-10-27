@@ -2,8 +2,8 @@
 // the damage it would take back), and picks the best. With nothing in reach it closes in — on what the mission is
 // about if there is something to destroy or stop, otherwise on the nearest enemy. A commander holds its ground
 // until someone comes near; artillery keeps its distance; everyone likes cover and hitting from behind.
-import { reach, weaponsOf, dist, alive, expected, counterOf, canAttack, isStatic, flankOf } from './rules.js?v=16';
-import { TERRAIN } from './data.js?v=16';
+import { reach, weaponsOf, dist, alive, expected, counterOf, canAttack, isStatic, flankOf } from './rules.js?v=17';
+import { TERRAIN } from './data.js?v=17';
 
 // opt: { prio(unit) → bonus for attacking it, goal: {x, y} to head for when nothing is in reach }
 export function plan(u, units, map, opt = {}) {

@@ -6,10 +6,10 @@
 //   render(...)    draw a frame (units, highlights, labels)
 //   pick(x, y)     the square under a point on the screen
 import * as THREE from './lib/three.module.min.js';
-import { P, hash, pickPal, shade, pine, crates, wreck } from './render.js?v=16';
-import { alive } from './rules.js?v=16';
-import { buildMech, poseMech } from './mech3d.js?v=16';
-import { mapPose } from './render.js?v=16';
+import { P, hash, pickPal, shade, pine, crates, wreck } from './render.js?v=17';
+import { alive } from './rules.js?v=17';
+import { buildMech, poseMech } from './mech3d.js?v=17';
+import { mapPose } from './render.js?v=17';
 
 const HEIGHT = { d: 0.12, '.': 0.12, ',': 0.12, r: 0.1, f: 0.14, x: 0.14, c: 0.14, h: 0.45, H: 0.78, '#': 0.62, b: 1.75, w: -0.05 };
 export const heightOf = (c) => HEIGHT[c] ?? 0.12;

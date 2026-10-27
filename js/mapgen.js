@@ -2,8 +2,8 @@
 // as soft blobs of noise, roads that join the two sides, a river with bridges, a town of blocks, a fortress wall.
 // Every map is checked: the squad's corner and the enemy's are clear, and a ground machine can get from one to
 // the other. Then the enemy, the things to protect or destroy, and the reinforcements are placed.
-import { ITEM, ALL_ITEMS, TERRAIN, PILOTS } from './data.js?v=16';
-import { VSLOT, DRIVE_OF } from './rules.js?v=16';
+import { ITEM, ALL_ITEMS, TERRAIN, PILOTS } from './data.js?v=17';
+import { VSLOT, DRIVE_OF } from './rules.js?v=17';
 
 export function rng(seed) { let s = (seed * 2654435761) >>> 0 || 1; return () => { s ^= s << 13; s >>>= 0; s ^= s >> 17; s ^= s << 5; s >>>= 0; return s / 4294967296; }; }
 const pick = (R, a) => a[Math.floor(R() * a.length)];

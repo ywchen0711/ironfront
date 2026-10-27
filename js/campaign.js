@@ -3,7 +3,7 @@
 // The words (briefings, debriefings, chapter openings) are in story/*.js.
 // Difficulty follows the mission's place: the gear tier rises one per chapter, the enemy pilots a level every
 // two or three missions, the pay with both.
-import { MISSIONS as FIRST } from './data.js?v=16';
+import { MISSIONS as FIRST } from './data.js?v=17';
 
 // chapter: [zh, en]
 export const CHAPTERS = [

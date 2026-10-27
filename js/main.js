@@ -1,24 +1,24 @@
 // 鋼魂戰線 / Iron Front: the game. Title → briefing → battle (your turn, the enemy's turn) → debriefing → base
 // (hangar and shop) → the next mission.
-import { START, PILOTS, ITEM, TERRAIN, TXT, SKILLS, ALL_ITEMS } from './data.js?v=16';
-import { makeUnit, alive, reach, weaponsOf, inRange, dist, hitChance, hitDamage, counterOf, fight, learn, weight, power, moveOf, evadeOf, PARTS, repair, canAttack, tickStatus, FIELD, fits, clsOf, isAir, isStatic, isVehicle, flankOf } from './rules.js?v=16';
-import { CAMPAIGN, CHAPTERS, FACTIONS, JOINERS, scaleOf, patrol } from './campaign.js?v=16';
-import { buildMission, OBJ_LOADOUT } from './mapgen.js?v=16';
-import { STORY } from './story/index.js?v=16';
-import { plan } from './ai.js?v=16';
-import { drawBattleFx, flyOf } from './render.js?v=16';
-import * as B3 from './battle3d.js?v=16';
-import * as Doll from './doll.js?v=16';
-import { SCHEMES, schemeColour } from './mech3d.js?v=16';
-import * as W3 from './world3d.js?v=16';
-import { sfx, setMute, muted } from './sfx.js?v=16';
+import { START, PILOTS, ITEM, TERRAIN, TXT, SKILLS, ALL_ITEMS } from './data.js?v=17';
+import { makeUnit, alive, reach, weaponsOf, inRange, dist, hitChance, hitDamage, counterOf, fight, learn, weight, power, moveOf, evadeOf, PARTS, repair, canAttack, tickStatus, FIELD, fits, clsOf, isAir, isStatic, isVehicle, flankOf, hurtOf } from './rules.js?v=17';
+import { CAMPAIGN, CHAPTERS, FACTIONS, JOINERS, scaleOf, patrol } from './campaign.js?v=17';
+import { buildMission, OBJ_LOADOUT } from './mapgen.js?v=17';
+import { STORY } from './story/index.js?v=17';
+import { plan } from './ai.js?v=17';
+import { drawBattleFx, flyOf } from './render.js?v=17';
+import * as B3 from './battle3d.js?v=17';
+import * as Doll from './doll.js?v=17';
+import { SCHEMES, schemeColour } from './mech3d.js?v=17';
+import * as W3 from './world3d.js?v=17';
+import { sfx, setMute, muted } from './sfx.js?v=17';
 
 const $ = (s) => document.querySelector(s), cv = $('#cv'), g = cv.getContext('2d');
 const KEY = 'ironfront.save', GAME = 'ironfront';
 const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 let S = null; // the saved game
 const loadSave = () => { try { return JSON.parse(localStorage.getItem(KEY)); } catch (e) { return null; } };
-let prefs = Object.assign({ lang: /^zh/i.test(navigator.language || '') ? 'zh' : 'en', anim: true }, (() => { try { return JSON.parse(localStorage.getItem('ironfront.prefs')) || {}; } catch (e) { return {}; } })());
+let prefs = Object.assign({ lang: /^zh/i.test(navigator.language || '') ? 'zh' : 'en', anim: true, auto: false }, (() => { try { return JSON.parse(localStorage.getItem('ironfront.prefs')) || {}; } catch (e) { return {}; } })());
 const savePrefs = () => { try { localStorage.setItem('ironfront.prefs', JSON.stringify(prefs)); } catch (e) { /* ignore */ } };
 let cloud = null;
 const save = () => { try { localStorage.setItem(KEY, JSON.stringify(S)); cloud?.touch(GAME, KEY); } catch (e) { /* ignore */ } };
@@ -238,11 +238,12 @@ function sortie(patrolSpec) {
   hideAll(); mode = 'battle'; resize(); W3.load(B);
   $('#hud').hidden = false; hud(); sfx('start');
   banner(`${T().phaseP}${P.weather && P.weather !== 'clear' && P.weather !== 'dusk' ? '・' + T().wx[P.weather] : ''}`);
+  B.auto = !!prefs.auto; if (B.auto) setTimeout(autoTurn, 1200);
 }
 function hud() {
   const t = T(), M = B.M, wx = B.P.weather;
   $('#hud').innerHTML = `<div class="hl"><b>${esc(L(M))}</b><span>${B.win.turns ? t.turnOf(B.turn, B.win.turns) : t.turn(B.turn)}・${B.phase === 'e' ? t.theirs : t.yours}・${t.wx[wx] || ''}</span><small>${esc(objText(B.win))}${t.wxNote[wx] ? `<br>${t.wxNote[wx]}` : ''}</small></div>
-    <div class="hr"><button data-act="anim">🎬 ${t.anim}${colon()}${prefs.anim ? t.on : t.off}</button><button data-act="rotl" title="⟲">⟲</button><button data-act="rotr" title="⟳">⟳</button><button data-act="zin">＋</button><button data-act="zout">－</button><button data-act="mute">${muted() ? '🔇' : '🔊'}</button><button data-act="quit">${t.quit}</button><button class="end" data-act="end" ${B.phase === 'e' || B.busy ? 'disabled' : ''}>${t.endTurn} ▶</button></div>`;
+    <div class="hr"><button data-act="auto" class="${B.auto ? 'on' : ''}" title="A">🤖 ${t.auto}${colon()}${B.auto ? t.on : t.off}</button><button data-act="anim">🎬 ${t.anim}${colon()}${prefs.anim ? t.on : t.off}</button><button data-act="rotl" title="⟲">⟲</button><button data-act="rotr" title="⟳">⟳</button><button data-act="zin">＋</button><button data-act="zout">－</button><button data-act="mute">${muted() ? '🔇' : '🔊'}</button><button data-act="quit">${t.quit}</button><button class="end" data-act="end" ${B.phase === 'e' || B.busy ? 'disabled' : ''}>${t.endTurn} ▶</button></div>`;
 }
 function card(u) {
   const el = $('#card'); if (!u) { el.hidden = true; return; }
@@ -439,8 +440,63 @@ async function enemyTurn() {
   B.busy = false;
   o = over(); if (o) return endBattle(o);
   hud(); banner(T().phaseP); sfx('start');
+  if (B.auto) setTimeout(autoTurn, 700);
 }
 function centreOn(u) { W3.focus(u.x, u.y); }
+
+// ---------------------------------------------------------------- auto battle: the computer plays your squad
+// The same planner as the enemy's (ai.js), told what the mission is about: enemy installations and the commander
+// come first; on a 'reach' mission everyone fights their way towards the zone and steps in as soon as one can; a
+// supply truck drives for it, keeping away
+// from the enemy; a badly damaged machine with repair kits left mends itself. It plays one machine at a time with
+// the usual moves and battle scenes, so it can be switched off at any point and you carry on from the next one.
+function toggleAuto() {
+  B.auto = !B.auto; prefs.auto = B.auto; savePrefs(); hud(); banner(`🤖 ${T().auto}${colon()}${B.auto ? T().on : T().off}`);
+  if (B.auto) { B.sel = null; B.step = 'idle'; menu(null); card(null); autoTurn(); }
+}
+function playerOpt() {
+  const W = B.win.type, enemyObj = B.units.find((u) => u.side === 'e' && u.obj && alive(u)), boss = B.units.find((u) => u.side === 'e' && u.boss && alive(u));
+  const z = B.zone.length ? B.zone[Math.floor(B.zone.length / 2)] : null;
+  return { prio: (f) => (f.obj ? 40 : f.boss && W === 'boss' ? 25 : 0), goal: W === 'destroy' && enemyObj ? enemyObj : W === 'boss' && boss ? boss : z ? { x: z[0], y: z[1] } : null };
+}
+// to the zone: the nearest reachable square to it (a truck also keeps three squares from the enemy)
+async function toZone(u) {
+  const { tiles, path } = reach(u, B.units, B.map), foes = B.units.filter((o) => o.side !== u.side && alive(o) && !o.obj);
+  let best = null, bd = 1e9;
+  for (const t of [{ x: u.x, y: u.y }, ...tiles]) {
+    const d = Math.min(...B.zone.map(([x, y]) => Math.abs(x - t.x) + Math.abs(y - t.y))) + (u.cls === 'truck' && foes.some((f) => dist(f, t) <= 3) ? 50 : 0);
+    if (d < bd) { bd = d; best = t; }
+  }
+  if (best && (best.x !== u.x || best.y !== u.y)) await walk(u, path(best.x, best.y));
+}
+async function autoTurn() {
+  if (!B || !B.auto || B.phase === 'e' || B.busy || mode !== 'battle') return;
+  B.busy = true; B.sel = null; B.step = 'idle'; menu(null); card(null); hud();
+  for (const u of B.units.filter((x) => x.side === 'p' && !isStatic(x) && !x.done)) {
+    if (!B || !B.auto) break;
+    if (!alive(u)) continue;
+    centreOn(u); await wait(300);
+    // a truck drives for the zone; on a 'reach' mission, whoever can get into it this turn goes (that wins it)
+    let there = false;
+    if (B.zone.length && u.cls === 'truck') await toZone(u);
+    else if (B.win.type === 'reach' && B.zone.length) { const { tiles, path } = reach(u, B.units, B.map), z = tiles.find((t) => B.zone.some(([x, y]) => x === t.x && y === t.y)); if (z) { await walk(u, path(z.x, z.y)); there = true; } }
+    if (u.cls !== 'truck' && !there) {
+      if (u.kits > 0 && hurtOf(u) > 0.45) { repair(u); sfx('buy'); banner(`🔧 ${pname(u)} ${T().repaired}`); await wait(600); }
+      else {
+        const pl = plan(u, B.units, B.map, playerOpt());
+        if (pl?.path.length) await walk(u, pl.path);
+        const w = pl?.w && weaponsOf(u).find((o) => o.slot === pl.w.slot);
+        if (w && alive(pl.target) && canAttack(u, w, pl.target)) { await wait(200); await attack(u, w, pl.target); B.busy = true; }
+      }
+    }
+    u.done = true;
+    const o = over(); if (o) { B.busy = false; return endBattle(o); }
+    await wait(150);
+  }
+  if (!B) return;
+  B.busy = false; hud();
+  if (B.auto && B.phase !== 'e' && B.units.filter((x) => x.side === 'p' && alive(x) && !isStatic(x)).every((x) => x.done)) await enemyTurn();
+}
 // salvage: now and then a part or weapon of a destroyed enemy is worth taking home
 function salvage() {
   const got = [];
@@ -513,7 +569,7 @@ const up = (e) => {
 };
 gl.addEventListener('pointerup', up); gl.addEventListener('pointercancel', up);
 gl.addEventListener('wheel', (e) => { if (mode !== 'battle') return; e.preventDefault(); W3.zoomBy(e.deltaY < 0 ? 1.12 : 1 / 1.12); }, { passive: false });
-document.addEventListener('keydown', (e) => { if (mode !== 'battle') return; if (e.key === 'q' || e.key === 'Q') W3.snap(-Math.PI / 4); if (e.key === 'e' || e.key === 'E') W3.snap(Math.PI / 4); });
+document.addEventListener('keydown', (e) => { if (mode !== 'battle') return; if ((e.key === 'a' || e.key === 'A') && B) toggleAuto(); if (e.key === 'q' || e.key === 'Q') W3.snap(-Math.PI / 4); if (e.key === 'e' || e.key === 'E') W3.snap(Math.PI / 4); });
 document.addEventListener('click', async (e) => {
   const b = e.target.closest('button'); if (!b || b.disabled) return;
   const a = b.dataset.act;
@@ -532,6 +588,7 @@ document.addEventListener('click', async (e) => {
   else if (b.dataset.sell) { const x = ITEM[b.dataset.sell]; S.inv[x.id]--; if (!S.inv[x.id]) delete S.inv[x.id]; S.money += Math.floor(x.price / 2); save(); sfx('buy'); base(); }
   else if (a === 'sortie') sortie();
   else if (a === 'anim') { prefs.anim = !prefs.anim; savePrefs(); hud(); }
+  else if (a === 'auto' && B) toggleAuto();
   else if (a === 'mute') { setMute(!muted()); hud(); }
   else if (a === 'zin' || a === 'zout') W3.zoomBy(a === 'zin' ? 1.25 : 0.8);
   else if (a === 'rotl' || a === 'rotr') W3.snap(a === 'rotl' ? -Math.PI / 4 : Math.PI / 4);

@@ -1,5 +1,5 @@
 // 鋼魂戰線 / Iron Front: the parts, the weapons, the pilots and the first missions.
-import { GENERATED } from './items.js?v=16';
+import { GENERATED } from './items.js?v=17';
 // Every wanzer (walking tank) is a body, two arms and legs; it carries a weapon in each hand and one on its shoulder.
 // The body's power output must carry the weight of everything else.
 
@@ -59,7 +59,7 @@ const OLD = {
   RK1: { fam: 'rocket', dt: 'exp', fx: 'rocket', tier: 1 }, MS1: { fam: 'missile', dt: 'exp', fx: 'missile', tier: 1 }, MS2: { fam: 'hmissile', dt: 'exp', fx: 'missile', tier: 3 },
 };
 for (const x of [...BODIES, ...ARMS, ...LEGS, ...WEAPONS]) Object.assign(x, { kind: 'weapon', maker: 'PW' }, OLD[x.id]);
-export { MAKERS, VCLASS, FAMILIES } from './items.js?v=16';
+export { MAKERS, VCLASS, FAMILIES } from './items.js?v=17';
 export const ITEM = Object.fromEntries([...BODIES, ...ARMS, ...LEGS, ...WEAPONS, ...GENERATED, ...OBJ].map((x) => [x.id, x]));
 export const BUYABLE = Object.values(ITEM).filter((x) => x.price > 0 && !x.id.startsWith('S-'));
 export const ALL_ITEMS = BUYABLE;
@@ -276,7 +276,7 @@ export const MISSIONS = [
 
 export const TXT = {
   zh: { title: '鋼魂戰線', sub: '機甲戰略模擬', start: '開始新遊戲', cont: '繼續', lang: 'English', mission: '任務', turn: (n) => `第 ${n} 回合`, yours: '我方回合', theirs: '敵方回合',
-    endTurn: '結束回合', repair: '修理', kits: '修理包', repaired: '修理完成', anim: '戰鬥動畫', on: '開', off: '關', move: '移動', attack: '攻擊', wait: '待機', cancel: '取消', fire: '開火！', back: '返回',
+    endTurn: '結束回合', auto: '自動戰鬥', repair: '修理', kits: '修理包', repaired: '修理完成', anim: '戰鬥動畫', on: '開', off: '關', move: '移動', attack: '攻擊', wait: '待機', cancel: '取消', fire: '開火！', back: '返回',
     body: '機身', armL: '左臂', armR: '右臂', legs: '腿部', wL: '左手', wR: '右手', sh: '肩部', none: '（無）', weight: '重量', power: '出力', overweight: '超重！',
     hit: '命中', dmg: '傷害', counter: '反擊', noCounter: '無法反擊', range: '射程', ammo: '彈藥', miss: 'MISS', destroyed: '破壞！', lost: '擊毀', lv: 'Lv',
     winAll: '勝利條件：擊毀所有敵人', winBoss: (n) => `勝利條件：擊毀 ${n}`, lose: '失敗條件：我方全滅', victory: '任務完成！', defeat: '任務失敗', reward: (n) => `報酬 ${n}`,
@@ -296,7 +296,7 @@ export const TXT = {
     stat: { hp: 'HP', power: '出力', acc: '命中', punch: '拳', move: '移動', eva: '迴避', guard: '減傷', ap: '穿甲', aa: '對空', indirect: '曲射', burn: '燃燒', stun: '暈眩', crit: '爆擊', ecm: '干擾', still: '靜止命中', kits: '修理包', melee: '格鬥', resist: '抗爆', camo: '偽裝', hpBody: '機身HP' },
     dt: { kin: '動能', exp: '爆炸', imp: '衝擊', fire: '火焰' }, statusNone: '', fits: '可裝備', noFit: '裝不上', compare: '目前', terr: '地形', eva: '迴避', moveN: '移動力', mp: '剩餘', boss: '指揮官' },
   en: { title: 'Iron Front', sub: 'A wanzer tactics game', start: 'New game', cont: 'Continue', lang: '中文', mission: 'Mission', turn: (n) => `Turn ${n}`, yours: 'Your turn', theirs: 'Enemy turn',
-    endTurn: 'End turn', repair: 'Repair', kits: 'Repair kits', repaired: 'Repaired', anim: 'Battle scenes', on: 'on', off: 'off', move: 'Move', attack: 'Attack', wait: 'Wait', cancel: 'Cancel', fire: 'Fire!', back: 'Back',
+    endTurn: 'End turn', auto: 'Auto battle', repair: 'Repair', kits: 'Repair kits', repaired: 'Repaired', anim: 'Battle scenes', on: 'on', off: 'off', move: 'Move', attack: 'Attack', wait: 'Wait', cancel: 'Cancel', fire: 'Fire!', back: 'Back',
     body: 'Body', armL: 'Left arm', armR: 'Right arm', legs: 'Legs', wL: 'Left hand', wR: 'Right hand', sh: 'Shoulder', none: '(none)', weight: 'Weight', power: 'Power', overweight: 'Too heavy!',
     hit: 'Hit', dmg: 'Damage', counter: 'Counter', noCounter: 'No counter', range: 'Range', ammo: 'Ammo', miss: 'MISS', destroyed: 'Destroyed!', lost: 'Destroyed', lv: 'Lv',
     winAll: 'Win: destroy every enemy', winBoss: (n) => `Win: destroy ${n}`, lose: 'Lose: the whole squad is destroyed', victory: 'Mission complete!', defeat: 'Mission failed', reward: (n) => `Pay ${n}`,

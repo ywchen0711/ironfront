@@ -3,7 +3,7 @@
 // (body/hull, two arms or mounts, legs or drive) and up to three weapons and an accessory.
 // What decides a fight: the damage type against the armour, where it is hit from (front, side, back), the height,
 // the terrain, the weather, the pilot's level and skills, air against ground, and luck.
-import { ITEM, TERRAIN, PILOTS, FIST, SKILLS } from './data.js?v=16';
+import { ITEM, TERRAIN, PILOTS, FIST, SKILLS } from './data.js?v=17';
 
 export const PARTS = ['body', 'armL', 'armR', 'legs'];
 export const SLOTS = ['wL', 'wR', 'sh', 'acc'];

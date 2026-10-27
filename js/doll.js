@@ -1,7 +1,7 @@
 // The hangar's paper doll: the selected wanzer in 3D on a turntable, rebuilt whenever a part, a weapon or the paint
 // changes. Drag to turn it. It has its own small renderer, drawn at half size and blown up so it keeps its pixels.
 import * as THREE from './lib/three.module.min.js';
-import { buildMech, poseMech } from './mech3d.js?v=16';
+import { buildMech, poseMech } from './mech3d.js?v=17';
 
 const PXL = 1;
 let renderer = null, scn, cmr, holder = null, mech = null, unit = null, canvas = null, spin = 0.6, drag = null, raf = 0;

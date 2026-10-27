@@ -4,9 +4,9 @@
 //   prepare(map)          paints a sprite for every square (ground, raised blocks, warehouses, trees, props)
 //   drawMap(...)          the battlefield, back to front, with the units standing among the buildings
 //   drawBattle(...)       the side-on battle scene
-import { TERRAIN, ITEM } from './data.js?v=16';
-import { alive } from './rules.js?v=16';
-import { wanzerSprite } from './mech.js?v=16';
+import { TERRAIN, ITEM } from './data.js?v=17';
+import { alive } from './rules.js?v=17';
+import { wanzerSprite } from './mech.js?v=17';
 
 export const TW = 32, TH = 16, HZ = 8;
 export const iso = (x, y) => ({ x: (x - y) * TW / 2, y: (x + y) * TH / 2 });
