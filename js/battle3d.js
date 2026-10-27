@@ -2,10 +2,10 @@
 // lit low from the front so their arms and pauldrons throw shadows across their own armour.
 // Shots, explosions and numbers are drawn flat on top (render.js drawBattleFx) at points projected from here.
 import * as THREE from './lib/three.module.min.js';
-import { buildMech, poseMech } from './mech3d.js';
-import * as W3 from './world3d.js';
-import { P, hash } from './render.js';
-import { ITEM } from './data.js';
+import { buildMech, poseMech } from './mech3d.js?v=15';
+import * as W3 from './world3d.js?v=15';
+import { P, hash } from './render.js?v=15';
+import { ITEM } from './data.js?v=15';
 
 const cam = { x: 0 };
 let scn = null, cmr = null, sun = null, groundMesh = null, groundKey = '', sideMech = {}, key = null;

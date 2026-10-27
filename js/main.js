@@ -1,14 +1,14 @@
 // 鋼魂戰線 / Iron Front: the game. Title → briefing → battle (your turn, the enemy's turn) → debriefing → base
 // (hangar and shop) → the next mission.
-import { MISSIONS, START, JOIN, PILOTS, ITEM, BODIES, ARMS, LEGS, WEAPONS, TERRAIN, TXT } from './data.js';
-import { makeUnit, alive, reach, weaponsOf, inRange, dist, hitChance, counterOf, fight, learn, weight, power, moveOf, evadeOf, PARTS, expected, repair } from './rules.js';
-import { plan } from './ai.js';
-import { drawBattleFx } from './render.js';
-import * as B3 from './battle3d.js';
-import * as Doll from './doll.js';
-import { SCHEMES, schemeColour } from './mech3d.js';
-import * as W3 from './world3d.js';
-import { sfx, setMute, muted } from './sfx.js';
+import { MISSIONS, START, JOIN, PILOTS, ITEM, BODIES, ARMS, LEGS, WEAPONS, TERRAIN, TXT } from './data.js?v=15';
+import { makeUnit, alive, reach, weaponsOf, inRange, dist, hitChance, counterOf, fight, learn, weight, power, moveOf, evadeOf, PARTS, expected, repair } from './rules.js?v=15';
+import { plan } from './ai.js?v=15';
+import { drawBattleFx } from './render.js?v=15';
+import * as B3 from './battle3d.js?v=15';
+import * as Doll from './doll.js?v=15';
+import { SCHEMES, schemeColour } from './mech3d.js?v=15';
+import * as W3 from './world3d.js?v=15';
+import { sfx, setMute, muted } from './sfx.js?v=15';
 
 const $ = (s) => document.querySelector(s), cv = $('#cv'), g = cv.getContext('2d');
 const KEY = 'ironfront.save', GAME = 'ironfront';
@@ -46,6 +46,11 @@ function label(u, text, ms = 700, col) { B.labels.push({ u, text, col, until: pe
 
 // ---------------------------------------------------------------- the loop
 function frame() {
+  // whatever goes wrong in one frame, the next one still comes
+  try { drawFrame(); } catch (e) { console.error(e); }
+  requestAnimationFrame(frame);
+}
+function drawFrame() {
   if ((mode === 'battle' || mode === 'scene') && B) {
     const now = performance.now(); B.labels = B.labels.filter((l) => now < l.until);
     if (!scene) W3.render(highlights(), { sel: B.sel, cursor: B.hover, labels: B.labels });
@@ -60,7 +65,6 @@ function frame() {
       cv.style.pointerEvents = 'auto';
     } else { g.clearRect(0, 0, VW, VH); cv.style.pointerEvents = 'none'; }
   } else { g.fillStyle = '#100e0c'; g.fillRect(0, 0, VW, VH); }
-  requestAnimationFrame(frame);
 }
 function highlights() {
   const h = new Map(), W = B.map[0].length;

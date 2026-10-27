@@ -1,8 +1,8 @@
 // The enemy: for every square it can reach, every weapon and every target, it scores the damage it would do (and
 // the damage it would take back), and picks the best. With nothing in reach it closes in on the nearest enemy.
 // A commander holds its ground until someone comes near.
-import { reach, weaponsOf, inRange, dist, alive, expected, counterOf } from './rules.js';
-import { TERRAIN } from './data.js';
+import { reach, weaponsOf, inRange, dist, alive, expected, counterOf } from './rules.js?v=15';
+import { TERRAIN } from './data.js?v=15';
 
 export function plan(u, units, map, chaseBoss = false) {
   const foes = units.filter((o) => alive(o) && o.side !== u.side);

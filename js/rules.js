@@ -1,5 +1,5 @@
 // The rules: building a wanzer from its parts, where it can walk, what it can hit, and how a fight goes.
-import { ITEM, TERRAIN, PILOTS, FIST } from './data.js';
+import { ITEM, TERRAIN, PILOTS, FIST } from './data.js?v=15';
 
 export const PARTS = ['body', 'armL', 'armR', 'legs'];
 export const SLOTS = ['wL', 'wR', 'sh'];
