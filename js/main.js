@@ -216,24 +216,28 @@ function preview() {
 }
 function walk(u, path) {
   return new Promise(async (res) => {
+    const A = u.anim || (u.anim = { phase: 0, walk: 0 }); A.moving = true; let n = 0;
     for (const s of path) {
       const a = iso(u.x, u.y), b = iso(s.x, s.y), from = { x: a.x, y: a.y - hAt(u.x, u.y) }, to = { x: b.x, y: b.y - hAt(s.x, s.y) };
       u.face = to.x >= from.x ? 1 : -1;
-      const t0 = performance.now(), dur = 150;
+      const t0 = performance.now(), dur = 230, ph0 = A.phase;
       u.x = s.x; u.y = s.y;
-      await new Promise((r) => { const tick = () => { const k = Math.min(1, (performance.now() - t0) / dur); u.ox = (from.x - to.x) * (1 - k); u.oy = (from.y - to.y) * (1 - k); if (k < 1) requestAnimationFrame(tick); else r(); }; tick(); });
-      sfx('step');
+      // one step per square; the legs make half a stride in that time, so the feet keep pace with the ground
+      await new Promise((r) => { const tick = () => { const k = Math.min(1, (performance.now() - t0) / dur); u.ox = (from.x - to.x) * (1 - k); u.oy = (from.y - to.y) * (1 - k); A.phase = ph0 + k * Math.PI; if (k < 1) requestAnimationFrame(tick); else r(); }; tick(); });
+      if (n++ % 1 === 0) sfx('step');
     }
-    u.ox = u.oy = 0; res();
+    u.ox = u.oy = 0; A.moving = false; res();
   });
 }
 async function attack(a, w, d) {
   B.busy = true; hud(); menu(null);
   a.face = d.x - d.y > a.x - a.y ? 1 : d.x - d.y < a.x - a.y ? -1 : a.face;
   const hpA = { ...a.hp }, hpD = { ...d.hp };
-  label(a, 'Fire', 650); sfx('click'); await wait(500);
+  const A = a.anim || (a.anim = { phase: 0, walk: 0 }), now = performance.now();
+  A.aimUntil = now + 900; A.fireFrom = now + 380; label(a, 'Fire', 650); sfx('click'); await wait(600);
   const r = fight(a, w, d, B.map);
   await battleScene(r, hpA, hpD);
+  for (const [u, v] of [[d, r.first], [a, r.second]]) if (v && v.hits.some((h) => !h.miss)) (u.anim || (u.anim = { phase: 0, walk: 0 })).hitUntil = performance.now() + 450;
   if (!prefs.anim) { const sum = (v) => v.hits.reduce((s2, h) => s2 + (h.dmg || 0), 0); label(d, sum(r.first) ? `-${sum(r.first)}` : 'Miss', 900, sum(r.first) ? '#a02010' : '#141410'); if (r.second) { await wait(450); label(a, sum(r.second) ? `-${sum(r.second)}` : 'Miss', 900, sum(r.second) ? '#a02010' : '#141410'); } await wait(700); }
   for (const u of [a, d]) if (!alive(u)) { u.dying = 0.01; sfx('boom'); const t0 = performance.now(); await new Promise((res) => { const tick = () => { u.dying = (performance.now() - t0) / 600; if (u.dying < 1) requestAnimationFrame(tick); else { u.dying = 0; res(); } }; tick(); }); }
   for (const u of [a, d]) { const up = u.side === 'p' && learn(u); if (up) banner(T().expUp(pname(u), up)); }

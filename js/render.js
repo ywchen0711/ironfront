@@ -6,6 +6,7 @@
 //   drawBattle(...)       the side-on battle scene
 import { TERRAIN, ITEM } from './data.js';
 import { alive } from './rules.js';
+import { wanzerSprite } from './mech.js';
 
 export const TW = 32, TH = 16, HZ = 8;
 export const iso = (x, y) => ({ x: (x - y) * TW / 2, y: (x + y) * TH / 2 });
@@ -134,52 +135,17 @@ function warehouseDetail(g, cy, depth, tx, ty, at) {
   if (openR && v < 0.3) { g.fillStyle = '#3a2a1a'; for (let k = 0; k < 9; k++) { const ex = 19 + k; g.fillRect(ex, cy + 8 - Math.floor((ex - 16) / 2) + 6, 1, 3); } }
 }
 
-// ---------------------------------------------------------------- wanzers on the map
-const PAL = {
-  p: { lite: '#aec27a', base: '#7c944e', shade: '#56683a', dark: '#36421f', trim: '#c8b040', glass: '#2a3a48' },
-  e: { lite: '#c8c4ba', base: '#9a968c', shade: '#6c685e', dark: '#403e38', trim: '#d0702e', glass: '#3a2a2a' },
-};
-const cache = new Map();
-function outline(c, col = '#100e0a') {
-  const g = c.getContext('2d'), img = g.getImageData(0, 0, c.width, c.height), d = img.data, W = c.width, H = c.height, out = new Uint8ClampedArray(d);
-  const [r, gg, b] = hex(col);
-  for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) {
-    const i = (y * W + x) * 4; if (d[i + 3]) continue;
-    if ((x > 0 && d[i - 1]) || (x < W - 1 && d[i + 7]) || (y > 0 && d[i - W * 4 + 3]) || (y < H - 1 && d[i + W * 4 + 3])) { out[i] = r; out[i + 1] = gg; out[i + 2] = b; out[i + 3] = 255; }
-  }
-  g.putImageData(new ImageData(out, W, H), 0, 0);
-}
-// a little machine, 3/4 view, facing right: 30 x 36 pixels, feet at (15, 33)
-function mapMech(u) {
-  const key = ['m', u.side, u.legs, u.wL, u.wR, u.sh, u.hp.armL > 0, u.hp.armR > 0, u.hp.legs > 0].join('|');
-  if (cache.has(key)) return cache.get(key);
-  const c = canvas(30, 36), g = c.getContext('2d'), C = PAL[u.side], L = ITEM[u.legs];
-  const box = (x, y, w, h, base, lite, dark) => { g.fillStyle = base; g.fillRect(x, y, w, h); if (lite) { g.fillStyle = lite; g.fillRect(x, y, w, 1); g.fillRect(x, y, 1, h); } if (dark) { g.fillStyle = dark; g.fillRect(x, y + h - 1, w, 1); g.fillRect(x + w - 1, y, 1, h); } };
-  const legC = u.hp.legs > 0 ? C : { base: '#4a4640', lite: '#5a564e', shade: '#3a3630', dark: '#2a2622' };
-  // the far arm, and a shield on it
-  if (u.hp.armL > 0) { box(5, 14, 4, 7, C.shade, C.base, C.dark); if (u.wL && ITEM[u.wL].cat === 'shield') box(2, 12, 3, 12, '#6a6c70', '#8a8c90', '#3a3c40'); }
-  // legs
-  if (L.tread) { box(4, 25, 21, 7, legC.shade, legC.base, legC.dark); g.fillStyle = '#1a1814'; for (let k = 5; k < 24; k += 3) g.fillRect(k, 29, 1, 2); box(8, 21, 13, 5, legC.base, legC.lite, legC.dark); }
-  else if (L.hover) { box(5, 27, 19, 4, legC.shade, legC.base, legC.dark); g.fillStyle = '#5ab4d8'; g.fillRect(7, 31, 15, 1); box(9, 21, 11, 7, legC.base, legC.lite, legC.dark); }
-  else { box(8, 21, 5, 6, legC.shade, legC.base, legC.dark); box(8, 26, 4, 5, legC.shade, legC.base, legC.dark); box(6, 31, 8, 2, legC.dark, legC.shade); box(14, 21, 6, 6, legC.base, legC.lite, legC.dark); box(15, 26, 5, 5, legC.base, legC.lite, legC.dark); box(14, 31, 9, 2, legC.dark, legC.shade); }
-  // a launcher on the back
-  if (u.sh) { box(6, 4, 8, 6, '#5a5c58', '#7a7c76', '#34362f'); g.fillStyle = '#1a1814'; g.fillRect(12, 5, 2, 2); g.fillRect(12, 8, 2, 1); }
-  // the body: a box with a lit top and the cockpit glass in front
-  box(7, 10, 15, 11, C.base, C.lite, C.dark); g.fillStyle = C.lite; g.fillRect(8, 10, 13, 2); g.fillStyle = C.shade; g.fillRect(7, 18, 15, 3);
-  g.fillStyle = C.glass; g.fillRect(15, 13, 6, 3); g.fillStyle = '#7a9ab0'; g.fillRect(16, 13, 3, 1);
-  box(11, 6, 6, 5, C.shade, C.base, C.dark); g.fillStyle = '#e04030'; g.fillRect(15, 8, 1, 1);
-  g.fillStyle = C.trim; g.fillRect(8, 16, 2, 1);
-  // the near shoulder, arm and weapon
-  if (u.hp.armR > 0) {
-    box(18, 11, 6, 5, C.base, C.lite, C.dark); box(19, 16, 4, 6, C.shade, C.base, C.dark);
-    const w = u.wR && ITEM[u.wR];
-    if (w && w.cat === 'short') { const len = w.id === 'RF2' ? 9 : w.id === 'SG1' ? 4 : 6; box(20, 20, len, 3, '#3a3c40', '#5e6066', '#1c1d20'); if (w.shots > 4) box(21, 22, 3, 3, '#4a4c50', '#62646a'); }
-    else if (w && w.cat === 'melee') { box(22, 12, 2, 11, '#4a4c50', '#7a7c82'); if (w.id === 'AX1') box(23, 10, 5, 5, '#8a8c90', '#b0b2b6', '#4a4c50'); if (w.id === 'RD1') { g.fillStyle = '#6ac8ff'; g.fillRect(22, 11, 2, 2); } }
-    else if (w && w.cat === 'shield') box(22, 13, 4, 11, '#6a6c70', '#8a8c90', '#3a3c40');
-  } else { g.fillStyle = '#ffb030'; g.fillRect(20, 13, 1, 1); g.fillRect(21, 12, 1, 1); }
-  outline(c);
-  cache.set(key, c);
-  return c;
+// ---------------------------------------------------------------- how a unit on the map is moving right now
+// u.anim: { moving, phase (set by the walk), aimUntil, fireFrom, hitUntil }; walk eases in and out
+export function mapPose(u, t) {
+  const A = u.anim || (u.anim = { phase: 0, walk: 0, last: t });
+  const dt = Math.min(0.1, t - (A.last || t)); A.last = t;
+  A.walk += ((A.moving ? 1 : 0) - A.walk) * Math.min(1, dt * 10);
+  if (!A.moving && A.walk < 0.02) A.walk = 0;
+  const ms = t * 1000, aimK = A.aimUntil && ms < A.aimUntil ? Math.min(1, (A.aimUntil - ms) / 150, (ms - (A.aimUntil - 900)) / 200) : 0;
+  const firing = A.fireFrom && ms > A.fireFrom && ms < A.aimUntil;
+  return { phase: A.phase, walk: A.walk, aim: Math.max(0, aimK), muzzle: firing && Math.floor(ms / 60) % 2 === 0, recoil: firing ? (Math.floor(ms / 60) % 2 ? 1 : 0) : 0,
+    flinch: A.hitUntil && ms < A.hitUntil ? Math.sin(ms / 25) : 0, t, face: u.face || (u.side === 'p' ? 1 : -1) };
 }
 
 // ---------------------------------------------------------------- the battlefield
@@ -205,16 +171,16 @@ function cursorAt(g, x, y, t) {
   for (let k = 0; k < 16; k++) { const w = k < 8 ? (k + 1) * 2 : (16 - k) * 2; g.fillRect(x - w, y - 8 + k, 1, 1); g.fillRect(x + w - 1, y - 8 + k, 1, 1); }
 }
 function unitAt(g, u, x, y, t, opt) {
-  const spr = mapMech(u), f = u.face || (u.side === 'p' ? 1 : -1);
-  g.fillStyle = '#0008'; for (let k = -1; k <= 1; k++) g.fillRect(x - 9 + Math.abs(k) * 3, y + k, 18 - Math.abs(k) * 6, 1);
+  const spr = wanzerSprite(u, 1, mapPose(u, t));
+  g.fillStyle = '#0008'; for (let k = -1; k <= 1; k++) g.fillRect(x - 10 + Math.abs(k) * 3, y + k, 20 - Math.abs(k) * 6, 1);
   if (u.dying) g.globalAlpha = Math.max(0, 1 - u.dying);
-  else if (u.done && u.side === 'p') g.globalAlpha = 0.55;
-  g.save(); g.translate(x, y - 33); if (f < 0) g.scale(-1, 1); g.drawImage(spr, -15, 0); g.restore();
+  else if (u.done && u.side === 'p') g.globalAlpha = 0.6;
+  g.drawImage(spr.c, Math.round(x - spr.ax), Math.round(y - spr.ay + 1));
   g.globalAlpha = 1;
   if (u.dying) for (let k = 0; k < 6; k++) { g.fillStyle = ['#ffe070', '#ff9a30', '#d04020'][k % 3]; const a = k * 1.1 + u.dying * 4, r = 4 + u.dying * 12; g.fillRect(Math.round(x + Math.cos(a) * r), Math.round(y - 14 + Math.sin(a) * r * 0.6), 3, 3); }
   if (!alive(u)) return;
   // a small health bar, a star for a commander, a bobbing arrow over the selected one
-  const k = u.hp.body / u.max.body, bx = x - 7, by = y - 39;
+  const k = u.hp.body / u.max.body, bx = x - 7, by = y - 50;
   g.fillStyle = '#100e0a'; g.fillRect(bx - 1, by - 1, 16, 4); g.fillStyle = '#3a3a30'; g.fillRect(bx, by, 14, 2); g.fillStyle = k > 0.5 ? '#9ac850' : k > 0.25 ? '#e0b030' : '#e04a30'; g.fillRect(bx, by, Math.max(1, Math.round(14 * k)), 2);
   if (u.boss) { g.fillStyle = '#ffd23a'; g.fillRect(x - 1, by - 5, 3, 3); g.fillRect(x, by - 6, 1, 5); g.fillRect(x - 2, by - 4, 5, 1); }
   if (opt.sel === u) { const b = Math.floor(t * 4) % 2; g.fillStyle = b ? '#ffe14a' : '#ffffff'; g.fillRect(x - 2, by - 9 - b, 5, 2); g.fillRect(x - 1, by - 7 - b, 3, 1); g.fillRect(x, by - 6 - b, 1, 1); }
@@ -255,45 +221,7 @@ function paintBackdrop(ground) {
   g.fillStyle = '#0006'; g.fillRect(0, 122, BW, 3);
   return c;
 }
-// a big machine, side on, facing right, feet at (0, 0): about 60 x 100 pixels
-function bigMech(g, u, C, o = {}) {
-  const fl = o.flash || {}, L = ITEM[u.legs], now = performance.now();
-  const col = (part, c) => (fl[part] > 0 && Math.floor(fl[part] * 10) % 2 ? '#ffffff' : u.hp[part] <= 0 ? '#3a3632' : c);
-  const box = (part, x, y, w, h, base, lite, dark) => { g.fillStyle = '#100e0a'; g.fillRect(x - 1, y - 1, w + 2, h + 2); g.fillStyle = col(part, base); g.fillRect(x, y, w, h); if (lite) { g.fillStyle = col(part, lite); g.fillRect(x, y, w, 1); g.fillRect(x, y, 1, h); } if (dark) { g.fillStyle = col(part, dark); g.fillRect(x, y + h - 1, w, 1); g.fillRect(x + w - 1, y, 1, h); } };
-  const rivets = (x, y, n, dx) => { g.fillStyle = '#100e0a'; for (let k = 0; k < n; k++) g.fillRect(x + k * dx, y, 1, 1); };
-  // the far arm
-  if (u.hp.armL > 0) {
-    box('armL', -14, -74, 12, 10, C.shade, C.base, C.dark); box('armL', -12, -64, 8, 16, C.dark, C.shade);
-    const w = u.wL && ITEM[u.wL];
-    if (w && w.cat === 'shield') { box('armL', 2, -76, 8, w.id === 'SH2' ? 44 : 34, '#5e6064', '#84868a', '#36383c'); rivets(4, -70, 3, 2); }
-    else if (w) box('armL', -6, -50, w.cat === 'melee' ? 4 : 18, w.cat === 'melee' ? 22 : 5, '#34363a', '#56585e');
-  }
-  // legs
-  if (L.tread) { box('legs', -30, -20, 60, 20, C.dark, C.shade); g.fillStyle = '#1a1814'; for (let k = -26; k < 28; k += 6) g.fillRect(k, -12, 3, 8); for (let k = -24; k < 26; k += 12) box('legs', k, -16, 8, 8, '#4a4840', '#6a6860'); box('legs', -16, -36, 32, 16, C.base, C.lite, C.dark); }
-  else if (L.hover) { box('legs', -26, -14, 52, 10, C.dark, C.shade); g.fillStyle = Math.floor(now / 80) % 2 ? '#7ad0f0' : '#4aa0d0'; g.fillRect(-22, -4, 44, 2); box('legs', -12, -38, 24, 24, C.base, C.lite, C.dark); }
-  else for (const [dx, back] of [[-10, true], [6, false]]) { const pal = back ? [C.shade, C.base, C.dark] : [C.base, C.lite, C.dark]; box('legs', dx, -44, 11, 20, ...pal); box('legs', dx - 1, -26, 13, 6, ...pal); box('legs', dx, -22, 10, 18, ...pal); box('legs', dx - 3, -5, 18, 5, C.dark, C.shade); rivets(dx + 2, -38, 3, 3); }
-  // hip, body, cockpit, head
-  box('body', -14, -50, 28, 8, C.dark, C.shade);
-  box('body', -20, -84, 40, 36, C.base, C.lite, C.dark);
-  g.fillStyle = col('body', C.lite); g.fillRect(-18, -82, 36, 4); g.fillStyle = col('body', C.shade); g.fillRect(-20, -56, 40, 8);
-  g.fillStyle = col('body', C.dark); g.fillRect(-8, -78, 1, 22); g.fillRect(-20, -66, 40, 1); rivets(-16, -60, 6, 6);
-  box('body', 6, -76, 14, 9, C.glass, '#4a6a80', '#1a2228'); g.fillStyle = '#8ab0c8'; g.fillRect(8, -75, 6, 1);
-  g.fillStyle = col('body', C.trim); g.fillRect(-18, -72, 6, 2);
-  box('body', -6, -94, 16, 11, C.shade, C.base, C.dark); g.fillStyle = Math.floor(now / 300) % 2 ? '#ff5a3a' : '#c03020'; g.fillRect(6, -90, 3, 2);
-  if (u.sh) { box('body', -26, -100, 22, 14, '#56584f', '#7a7c72', '#34362e'); g.fillStyle = '#100e0a'; for (let k = 0; k < 3; k++) g.fillRect(-8, -97 + k * 4, 4, 3); g.fillStyle = '#c8b040'; g.fillRect(-24, -90, 4, 1); }
-  // the near arm, brought up to aim when it fires
-  if (u.hp.armR > 0) {
-    box('armR', 12, -82, 16, 14, C.base, C.lite, C.dark); rivets(14, -72, 4, 3);
-    g.save(); g.translate(20, -68); g.rotate(o.aim || 0);
-    box('armR', -5, 0, 10, 16, C.shade, C.base, C.dark); box('armR', -6, 14, 12, 14, C.base, C.lite, C.dark);
-    const w = u.wR && ITEM[u.wR];
-    if (w && w.cat === 'short') { const len = w.id === 'RF2' ? 46 : w.id === 'RF1' ? 36 : w.id === 'SG1' ? 24 : 30, th = w.id === 'SG1' || w.id === 'MG2' ? 7 : 5; box('armR', 4, 18, 8, 12, '#2a2c30', '#4a4c52', '#141518'); box('armR', 6, 24, th, len, '#34363a', '#5a5c62', '#1c1d20'); if (w.shots > 4) box('armR', 12, 30, 6, 9, '#3e4046', '#5e6066'); if (w.id === 'RF2') box('armR', 1, 30, 4, 10, '#2a2c30', '#4a4c52'); }
-    else if (w && w.cat === 'melee') { box('armR', 2, 4, 4, 34, '#44464c', '#70727a'); if (w.id === 'AX1') box('armR', 4, -2, 14, 12, '#8a8c90', '#b8babe', '#4a4c50'); else if (w.id === 'RD1') { g.fillStyle = Math.floor(now / 60) % 2 ? '#8ae0ff' : '#4ab0e0'; g.fillRect(2, 2, 4, 6); } else box('armR', 0, 26, 12, 8, '#8a8c90', '#b0b2b6'); }
-    else if (w && w.cat === 'shield') box('armR', 4, 2, 9, 38, '#5e6064', '#84868a', '#36383c');
-    g.restore();
-  } else { g.fillStyle = '#100e0a'; g.fillRect(12, -80, 10, 8); if (Math.floor(now / 90) % 2) { g.fillStyle = '#ffd040'; g.fillRect(18, -78, 2, 2); g.fillRect(21, -81, 1, 1); } }
-}
-const PART_Y = { body: 66, armL: 66, armR: 72, legs: 22 };
+const PART_Y = { body: 70, armL: 76, armR: 66, legs: 24 };
 export function drawBattle(g, sc) {
   const t = sc.t;
   if (backKey !== sc.ground || !backdrop) { backdrop = paintBackdrop(sc.ground); backKey = sc.ground; }
@@ -304,13 +232,17 @@ export function drawBattle(g, sc) {
   for (const e of sc.events) { const tgt = e.from === 'L' ? 'R' : 'L'; if (!e.miss && t >= e.at && t < e.at + 0.25) { flash[tgt][e.part] = 1 - (t - e.at) / 0.25; shake[tgt] = 2; } }
   for (const s of ['L', 'R']) {
     const u = sc[s], p = pos[s], dying = sc.dead?.[s] && t > sc.deadAt ? Math.min(1, (t - sc.deadAt) / 0.9) : 0;
-    const busy = sc.events.filter((e) => e.from === s && t > e.at - 0.45 && t < e.at + 0.25), melee = busy.some((e) => e.cat === 'melee');
-    const aim = busy.length && !busy.every((e) => e.cat === 'long') ? (melee ? -2.6 + Math.min(1, Math.max(0, (t - busy[0].at + 0.1) * 6)) * 2.2 : -1.5) : -0.35;
-    g.fillStyle = '#0007'; for (let k = -2; k <= 2; k++) g.fillRect(p.x - 30 + Math.abs(k) * 6, base + k, 60 - Math.abs(k) * 12, 1);
-    g.save(); g.translate(Math.round(p.x + (shake[s] ? (Math.floor(t * 40) % 2 ? 2 : -2) : 0)), base + Math.round(dying * 8)); g.scale(p.f, 1);
+    const mine = sc.events.filter((e) => e.from === s), busy = mine.filter((e) => t > e.at - 0.5 && t < e.at + 0.3);
+    const guns = busy.filter((e) => e.cat === 'short'), melee = busy.some((e) => e.cat === 'melee');
+    const lunging = sc.events.some((e) => e.cat === 'melee' && e.from === s && t > e.at - 0.35 && t < e.at + 0.3);
+    const shot = mine.some((e) => e.cat === 'short' && t > e.at - 0.16 && t < e.at - 0.08);
+    const hit = sc.events.some((e) => e.from !== s && !e.miss && t >= e.at && t < e.at + 0.25);
+    const pose = { t, face: p.f, walk: lunging ? 1 : 0, phase: t * 16, aim: guns.length ? 1 : melee ? 0.6 : 0, muzzle: shot, recoil: shot ? 1 : 0, flinch: hit ? Math.sin(t * 60) : 0, flash: flash[s] };
+    g.fillStyle = '#0007'; for (let k = -2; k <= 2; k++) g.fillRect(p.x - 34 + Math.abs(k) * 7, base + k, 68 - Math.abs(k) * 14, 1);
+    const spr = wanzerSprite({ ...u, hp: sc['hp' + s] }, 2.4, pose);
     if (dying) g.globalAlpha = 1 - dying * 0.6;
-    bigMech(g, { ...u, hp: sc['hp' + s] }, PAL[u.side], { flash: flash[s], aim });
-    g.restore(); g.globalAlpha = 1;
+    g.drawImage(spr.c, Math.round(p.x - spr.ax), Math.round(base - spr.ay + dying * 8));
+    g.globalAlpha = 1;
   }
   // shots in flight, muzzle flashes
   for (const e of sc.events) {
