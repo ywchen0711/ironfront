@@ -43,7 +43,7 @@ const COL = {
 // ---------------------------------------------------------------- weathered pixel textures
 function pixTex(size, paint) {
   const c = document.createElement('canvas'); c.width = c.height = size; const g = c.getContext('2d'); paint(g, size);
-  const t = new THREE.CanvasTexture(c); t.magFilter = t.minFilter = THREE.NearestFilter; t.generateMipmaps = false; t.colorSpace = THREE.SRGBColorSpace; t.wrapS = t.wrapT = THREE.RepeatWrapping;
+  const t = new THREE.CanvasTexture(c); t.magFilter = THREE.NearestFilter; t.minFilter = THREE.LinearMipmapLinearFilter; t.generateMipmaps = true; t.anisotropy = 4; t.colorSpace = THREE.SRGBColorSpace; t.wrapS = t.wrapT = THREE.RepeatWrapping;
   return t;
 }
 const texCache = new Map();
@@ -105,15 +105,15 @@ function cylGeo(r1, r2, len, n = 8) { const key = `y${r1},${r2},${len},${n}`; if
 
 export function buildMech(u) {
   const C = colours(u), legs = ITEM[u.legs], BD = BODY[u.body] || BODY.B1;
-  const T = (map, extra = {}) => new THREE.MeshToonMaterial({ map, gradientMap: TOON, transparent: true, ...extra });
+  const T = (map, extra = {}) => new THREE.MeshToonMaterial({ map, gradientMap: TOON, ...extra });
   const mats = {
     paint: T(armourTex(C.paint, 1)), paint2: T(armourTex(C.paint, 2)), accent: T(armourTex(C.accent, 3)),
-    metal: T(metalTex(false)), metalD: T(metalTex(true)), trim: new THREE.MeshToonMaterial({ color: C.trim, gradientMap: TOON, transparent: true }),
-    glass: new THREE.MeshToonMaterial({ color: '#1e3440', emissive: '#0c2a38', gradientMap: TOON, transparent: true }), grille: T(grilleTex()),
-    eye: new THREE.MeshBasicMaterial({ color: '#ff4a30', transparent: true }), ink: new THREE.MeshToonMaterial({ color: '#121210', gradientMap: TOON, transparent: true }),
-    dead: new THREE.MeshToonMaterial({ color: '#2e2924', gradientMap: TOON, transparent: true }), jet: new THREE.MeshBasicMaterial({ color: '#6ad0f0', transparent: true }),
-    edge: new THREE.MeshToonMaterial({ color: C.paint[4], gradientMap: TOON, transparent: true }), decal: new THREE.MeshBasicMaterial({ map: decalTex(u, C.trim), transparent: true, alphaTest: 0.5 }),
-    lamp: new THREE.MeshBasicMaterial({ color: '#ffd060', transparent: true }), white: new THREE.MeshBasicMaterial({ color: '#ffffff', transparent: true }),
+    metal: T(metalTex(false)), metalD: T(metalTex(true)), trim: new THREE.MeshToonMaterial({ color: C.trim, gradientMap: TOON }),
+    glass: new THREE.MeshToonMaterial({ color: '#1e3440', emissive: '#0c2a38', gradientMap: TOON }), grille: T(grilleTex()),
+    eye: new THREE.MeshBasicMaterial({ color: '#ff4a30' }), ink: new THREE.MeshToonMaterial({ color: '#121210', gradientMap: TOON }),
+    dead: new THREE.MeshToonMaterial({ color: '#2e2924', gradientMap: TOON }), jet: new THREE.MeshBasicMaterial({ color: '#6ad0f0' }),
+    edge: new THREE.MeshToonMaterial({ color: C.paint[4], gradientMap: TOON }), decal: new THREE.MeshBasicMaterial({ map: decalTex(u, C.trim), alphaTest: 0.5, polygonOffset: true, polygonOffsetFactor: -2, polygonOffsetUnits: -2 }),
+    lamp: new THREE.MeshBasicMaterial({ color: '#ffd060' }), white: new THREE.MeshBasicMaterial({ color: '#ffffff' }),
   };
   const group = new THREE.Group(), hit = [], parts = {};
   const put = (parent, geo, mat, x, y, z, part, r) => { const m = new THREE.Mesh(geo, mat); m.position.set(x, y, z); if (r) m.rotation.set(r[0] || 0, r[1] || 0, r[2] || 0); m.castShadow = true; m.receiveShadow = true; m.userData = { unit: u, part, mat }; parent.add(m); hit.push(m); (parts[part] ||= []).push(m); return m; };
@@ -203,7 +203,7 @@ export function buildMech(u) {
     pr(sh, [0.32, 0.4, 0.32, 0.4, 0.04], mats.accent, side * 0.06, -0.06, 0, part); // the rim beneath
     blk(sh, 0.02, 0.05, 0.32, mats.trim, side * 0.205, 0.07, 0, part, [0, 0, side * -0.2]);
     rivets(sh, [[side * 0.18, 0.1, 0.15], [side * 0.18, 0.1, -0.15]], part);
-    if (AR.look !== 'round') { put(sh, new THREE.PlaneGeometry(0.13, 0.065), mats.decal, side * 0.213, -0.005, 0.02, part, [0, side * Math.PI / 2, 0]).castShadow = false; blk(sh, 0.24, 0.012, 0.012, mats.edge, side * 0.08, 0.16, 0.17, part); }
+    if (AR.look !== 'round') { put(sh, new THREE.PlaneGeometry(0.13, 0.065), mats.decal, side * 0.216, -0.005, 0.02, part, [0, side * Math.PI / 2, 0]).castShadow = false; blk(sh, 0.24, 0.012, 0.012, mats.edge, side * 0.08, 0.16, 0.17, part); }
     else put(sh, new THREE.PlaneGeometry(0.13, 0.065), mats.decal, side * 0.252, -0.005, 0.02, part, [0, side * Math.PI / 2, 0]).castShadow = false;
     const up = pivot(sh, 0, -0.06, 0);
     cyl(up, 0.05, 0.16, mats.metal, 0, -0.09, 0, part); cyl(up, 0.014, 0.14, mats.metalD, side * 0.04, -0.09, 0.04, part, 'y', 4);
@@ -290,10 +290,12 @@ export function buildMech(u) {
   const bar = new THREE.Sprite(new THREE.SpriteMaterial({ map: barT, depthTest: false })); bar.scale.set(0.5, 0.125, 1); bar.position.y = 1.4; bar.renderOrder = 9; group.add(bar);
   const star = new THREE.Sprite(new THREE.SpriteMaterial({ color: '#ffd23a', depthTest: false })); star.scale.set(0.12, 0.12, 1); star.position.y = 1.56; star.visible = !!u.boss; star.renderOrder = 9; group.add(star);
   const mark = new THREE.Sprite(new THREE.SpriteMaterial({ color: '#ffe14a', depthTest: false })); mark.scale.set(0.12, 0.16, 1); mark.position.y = 1.7; mark.visible = false; mark.renderOrder = 9; group.add(mark);
-  let lastBar = -1, lastAlpha = -1;
+  let lastBar = -1, lastAlpha = 1, lastDim = false;
   return {
     group, hit, parts, mats, hips, torso, head, eye, sweep, armR, armL, legL, legR, legsType: legs, bar, star, mark,
-    fade(a) { if (a === lastAlpha) return; lastAlpha = a; for (const k in mats) mats[k].opacity = a; },
+    fade(a) { if (a === lastAlpha) return; const was = lastAlpha < 1; lastAlpha = a; for (const k in mats) { mats[k].opacity = a; if (was !== a < 1) { mats[k].transparent = a < 1; mats[k].needsUpdate = true; } } },
+    // a machine that has acted is shown dimmed, not see-through
+    dim(on) { if (on === lastDim) return; lastDim = on; for (const k in mats) { const mt = mats[k]; if (!mt.color) continue; if (!mt.userData.base) mt.userData.base = mt.color.clone(); mt.color.copy(mt.userData.base); if (on) mt.color.multiplyScalar(0.55); } },
     bars(u2, sel, t) {
       const k = Math.max(0, u2.hp.body) / u2.max.body, key = Math.round(k * 18);
       if (key !== lastBar) { lastBar = key; const g = barC.getContext('2d'); g.fillStyle = '#100e0a'; g.fillRect(0, 0, 20, 5); g.fillStyle = '#3a3a30'; g.fillRect(1, 1, 18, 3); g.fillStyle = k > 0.5 ? '#9ac850' : k > 0.25 ? '#e0b030' : '#e04a30'; g.fillRect(1, 1, Math.max(1, key), 3); barT.needsUpdate = true; }

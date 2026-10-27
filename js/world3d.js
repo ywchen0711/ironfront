@@ -32,7 +32,7 @@ export function init(canvas) {
   camera = new THREE.OrthographicCamera(-10, 10, 6, -6, 0.1, 200);
   scene.add(new THREE.HemisphereLight('#d8d0bc', '#3a3228', 1.5));
   sun = new THREE.DirectionalLight('#fff0d4', 2.2); sun.castShadow = true;
-  sun.shadow.mapSize.set(1024, 1024); sun.shadow.bias = -0.002;
+  sun.shadow.mapSize.set(2048, 2048); sun.shadow.bias = -0.0015; sun.shadow.normalBias = 0.03;
   scene.add(sun); scene.add(sun.target);
 }
 // the battle scene borrows the same renderer
@@ -47,7 +47,7 @@ export function resize(w, h, px) {
 // ---------------------------------------------------------------- pixel textures for the squares
 function tex(w, h, paint) {
   const c = document.createElement('canvas'); c.width = w; c.height = h; const g = c.getContext('2d'); paint(g, w, h);
-  const t = new THREE.CanvasTexture(c); t.magFilter = THREE.NearestFilter; t.minFilter = THREE.NearestFilter; t.generateMipmaps = false; t.colorSpace = THREE.SRGBColorSpace;
+  const t = new THREE.CanvasTexture(c); t.magFilter = THREE.NearestFilter; t.minFilter = THREE.LinearMipmapLinearFilter; t.generateMipmaps = true; t.anisotropy = 4; t.colorSpace = THREE.SRGBColorSpace;
   return t;
 }
 const texCache = new Map();
@@ -128,7 +128,7 @@ export function load(battle) {
   // start looking at the squad from the classic angle
   const ps = B.units.filter((u) => u.side === 'p');
   cam.target.set(ps.reduce((s, u) => s + u.x, 0) / ps.length + 2, 0, ps.reduce((s, u) => s + u.y, 0) / ps.length - 2);
-  cam.theta = Math.PI / 4; cam.phi = 0.62; cam.zoom = VW < 700 ? 1.6 : 1.45;
+  cam.theta = Math.PI / 4; cam.phi = 0.62; cam.zoom = VW < 700 ? 1.75 : 1.65;
   // everyone faces the other side to begin with
   const cen = (side) => { const us = B.units.filter((u) => u.side === side); return [us.reduce((s, u) => s + u.x, 0) / us.length, us.reduce((s, u) => s + u.y, 0) / us.length]; };
   const [px, py] = cen('p'), [ex, ey] = cen('e');
@@ -169,14 +169,14 @@ export function render(hl, opt = {}) {
   for (const u of B.units) {
     let m = mechs.get(u);
     const show = alive(u) || u.dying;
-    if (!m) { m = buildMech(u); mechs.set(u, m); root.add(m.group); }
+    if (!m) { m = buildMech(u); m.group.traverse((o) => { o.receiveShadow = false; }); mechs.set(u, m); root.add(m.group); }
     m.group.visible = !!show; if (!show) continue;
     const vx = u.vx ?? u.x, vy = u.vy ?? u.y, h = u.vh ?? tileH(u.x, u.y);
     m.group.position.set(vx, h, vy);
     // turn smoothly towards where it wants to face
     let d = (u.dir ?? 0) - m.group.rotation.y; d = Math.atan2(Math.sin(d), Math.cos(d)); m.group.rotation.y += d * Math.min(1, dt * 12);
     poseMech(m, u, mapPose(u, t));
-    m.fade(u.dying ? Math.max(0, 1 - u.dying) : u.done && u.side === 'p' ? 0.55 : 1);
+    m.fade(u.dying ? Math.max(0, 1 - u.dying) : 1); m.dim(!!(u.done && u.side === 'p'));
     m.bars(u, opt.sel === u, t);
   }
   // highlights
